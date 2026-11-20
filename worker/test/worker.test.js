@@ -39,7 +39,9 @@ describe('parseCount', () => {
 describe('POST /e', () => {
   it('writes one data point keyed by the Origin hostname', async () => {
     const { response, writeDataPoint } = post('{"event":"open"}');
-    expect((await response).status).toBe(204);
+    const res = await response;
+    expect(res.status).toBe(204);
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
     expect(writeDataPoint).toHaveBeenCalledWith({
       indexes: ['blog.example.com'],
       blobs: ['blog.example.com', 'open', ''],

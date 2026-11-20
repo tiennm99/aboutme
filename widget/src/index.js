@@ -25,7 +25,9 @@ function storage() {
 
 /**
  * Sends one anonymous count. It carries no cookie and no visitor id; the
- * server reads the site from the request's Origin header.
+ * server reads the site from the request's Origin header. CORS mode keeps that
+ * header real even on pages whose referrer policy is `no-referrer`, and a
+ * `text/plain` body needs no preflight.
  * @param {string | null} url Count endpoint, or null to send nothing.
  * @param {string} event Event name.
  * @param {string} [target] Link id for clicks.
@@ -35,7 +37,7 @@ function track(url, event, target) {
   try {
     fetch(url, {
       method: 'POST',
-      mode: 'no-cors',
+      mode: 'cors',
       credentials: 'omit',
       keepalive: true,
       headers: { 'content-type': 'text/plain' },

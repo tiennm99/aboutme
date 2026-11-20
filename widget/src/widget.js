@@ -266,7 +266,6 @@ export function mount({ profile, position, hide, track, onDismiss }) {
   }
 
   let drag = null;
-  let suppressClick = false;
 
   bubble.addEventListener('pointerdown', (event) => {
     if (event.button !== 0) return;
@@ -290,15 +289,19 @@ export function mount({ profile, position, hide, track, onDismiss }) {
   });
 
   /**
-   * Ends a drag: dismisses over the target, otherwise snaps to a side.
+   * Ends a press: a tap toggles the panel; a drag dismisses over the target,
+   * otherwise snaps to a side. Taps are handled here rather than on `click`,
+   * because Chrome stops firing `click` for taps after a touch drag.
    * @param {PointerEvent} event Pointer event.
    */
   function endDrag(event) {
     if (!drag || event.pointerId !== drag.id) return;
     const { moved } = drag;
     drag = null;
-    if (!moved) return;
-    suppressClick = true;
+    if (!moved) {
+      if (event.type === 'pointerup') setOpen(panel.hidden);
+      return;
+    }
     bubble.classList.remove('dragging');
     const drop = event.type === 'pointerup' && overTarget();
     target.hidden = true;
@@ -309,12 +312,10 @@ export function mount({ profile, position, hide, track, onDismiss }) {
 
   bubble.addEventListener('pointerup', endDrag);
   bubble.addEventListener('pointercancel', endDrag);
-  bubble.addEventListener('click', () => {
-    if (suppressClick) {
-      suppressClick = false;
-      return;
-    }
-    setOpen(panel.hidden);
+  // Keyboard and assistive-tech activation fire a click with detail 0;
+  // pointer presses are already handled in endDrag.
+  bubble.addEventListener('click', (event) => {
+    if (event.detail === 0) setOpen(panel.hidden);
   });
   close.addEventListener('click', () => {
     setOpen(false);

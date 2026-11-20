@@ -44,7 +44,9 @@ Worker's tests check `profile.json` against it.
 - Leave out `events` to send no counts.
 
 The Worker serves `profile.json` with `Cache-Control: max-age=3600,
-stale-while-revalidate=86400`, so an edit reaches visitors within about an hour.
+stale-while-revalidate=86400`. A visitor's browser keeps a copy for an hour and may
+show it once more while fetching the new one in the background, so an edit can take
+up to a day to reach a returning visitor and reaches new visitors right away.
 
 ## Anonymous counts
 

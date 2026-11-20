@@ -18,10 +18,12 @@ const profile = {
 
 async function setup(page, { hide = '1d' } = {}) {
   const events = [];
+  const origins = [];
   await page.route(`${SITE}/`, (route) =>
     route.fulfill({
       contentType: 'text/html',
-      body: `<!doctype html><meta name="viewport" content="width=device-width">
+      // no-referrer is the strictest policy for the Origin header the Worker relies on.
+      body: `<!doctype html><meta name="viewport" content="width=device-width"><meta name="referrer" content="no-referrer">
         <h1>Host page</h1>
         <script src="${DATA}/aboutme.js" data-profile="${DATA}/profile.json" data-hide="${hide}" defer></script>`,
     }),
@@ -32,11 +34,12 @@ async function setup(page, { hide = '1d' } = {}) {
   );
   await page.route(`${DATA}/e`, (route) => {
     events.push(JSON.parse(route.request().postData()));
-    route.fulfill({ status: 204 });
+    origins.push(route.request().headers().origin);
+    route.fulfill({ status: 204, headers: { 'access-control-allow-origin': '*' } });
   });
   await page.route('https://example.com/**', (route) => route.fulfill({ body: 'ok' }));
   await page.goto(`${SITE}/`);
-  return events;
+  return { events, origins };
 }
 
 const bubble = (page) => page.getByRole('button', { name: 'About Jane Doe' });
@@ -60,7 +63,7 @@ async function drag(page, hasTouch, from, to, steps) {
 }
 
 test('opens the panel and counts the open and link clicks', async ({ page }) => {
-  const events = await setup(page);
+  const { events, origins } = await setup(page);
   await bubble(page).click();
   await expect(page.getByRole('dialog', { name: 'About Jane Doe' })).toBeVisible();
   await expect(page.getByRole('link', { name: 'GitHub' })).toHaveAttribute('href', 'https://github.com/example');
@@ -69,6 +72,7 @@ test('opens the panel and counts the open and link clicks', async ({ page }) => 
   await page.getByRole('link', { name: 'Homepage' }).click();
   await (await popup).close();
   await expect.poll(() => events).toEqual([{ event: 'open' }, { event: 'click', target: 'home' }]);
+  expect(origins).toEqual([SITE, SITE]);
 });
 
 test('closes the panel with Escape and with an outside click', async ({ page }) => {
@@ -91,10 +95,15 @@ test('dragging elsewhere snaps the bubble to a side without dismissing', async (
   expect(end.x).toBeLessThan(viewport.width / 2);
   expect(end.x).toBeGreaterThanOrEqual(0);
   await expect(bubble(page)).toBeVisible();
+
+  // The next tap after a drag still opens the panel.
+  if (hasTouch) await bubble(page).tap();
+  else await bubble(page).click();
+  await expect(page.getByRole('dialog')).toBeVisible();
 });
 
 test('dropping on the bottom target dismisses for the configured period', async ({ page, hasTouch }) => {
-  const events = await setup(page, { hide: '1d' });
+  const { events } = await setup(page, { hide: '1d' });
   const start = await bubble(page).boundingBox();
   const viewport = page.viewportSize();
   await drag(page, hasTouch, { x: start.x + 20, y: start.y + 20 }, { x: viewport.width / 2, y: viewport.height - 64 }, 12);
@@ -115,4 +124,14 @@ test('the hide button dismisses too', async ({ page }) => {
   await bubble(page).click();
   await page.getByRole('button', { name: 'Hide for 2 weeks' }).click();
   await expect(bubble(page)).toHaveCount(0);
+});
+
+test('the keyboard opens and closes the panel', async ({ page }) => {
+  await setup(page);
+  await bubble(page).focus();
+  await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('dialog')).toBeHidden();
+  await expect(bubble(page)).toBeFocused();
 });

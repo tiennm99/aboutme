@@ -49,6 +49,8 @@ export function parseCount(body) {
 const app = new Hono();
 
 app.post('/e', async (c) => {
+  // Counts come from any site; nothing private is returned.
+  c.header('Access-Control-Allow-Origin', '*');
   const site = siteOf(c.req.header('origin'));
   const count = parseCount(await c.req.text());
   if (!site || !count) return c.body(null, 400);
