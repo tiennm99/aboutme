@@ -31,7 +31,8 @@ npm run deploy
 ```
 
 Options, the profile format, counts and development: [docs/usage.md](docs/usage.md).
-Known issues: [docs/known-issues.md](docs/known-issues.md).
+Known issues: [docs/known-issues.md](docs/known-issues.md). Sites using the widget:
+[docs/installed-sites.md](docs/installed-sites.md).
 
 ## License
 
