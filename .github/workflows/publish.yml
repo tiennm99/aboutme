@@ -1,0 +1,37 @@
+name: Publish
+
+# Publishes the widget to npm when a tag like v1.2.3 is pushed. npm trusted
+# publishing (OIDC) authenticates this workflow, so no npm token is stored.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm install -g npm@latest
+      - run: npm ci
+      - name: Check the tag matches the widget version
+        run: |
+          version=$(node -p "require('./widget/package.json').version")
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match widget version $version" >&2
+            exit 1
+          fi
+      - run: npm run check
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+        env:
+          PW_CHANNEL: ''
+      - run: npm publish -w widget

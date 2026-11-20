@@ -90,7 +90,18 @@ use Playwright's bundled Chromium instead (`npx playwright install chromium`).
 
 ### Releasing the widget
 
+The `Publish` workflow (`.github/workflows/publish.yml`) publishes on a `v*` tag
+through npm trusted publishing, so no npm token is needed. It checks that the tag
+matches the widget's version, runs every check and the e2e tests, then publishes.
+`npm version` inside a workspace does not tag, so tag by hand:
+
 ```sh
-npm version minor -w widget
-npm publish -w widget
+npm version patch -w widget          # or minor / major
+v=$(node -p "require('./widget/package.json').version")
+git commit -am "chore(widget): release v$v"
+git tag "v$v"
+git push --follow-tags
 ```
+
+A major release (`2.0.0`) is for breaking changes, such as a new `schemaVersion`;
+sites on `@1` keep the old major.
