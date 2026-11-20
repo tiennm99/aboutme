@@ -7,6 +7,7 @@
 | `data-profile` | required | URL of the profile JSON |
 | `data-hide` | `7d` | How long the bubble stays hidden after a dismissal: a number and `m`, `h`, `d` or `w` (`30m`, `12h`, `1d`, `2w`) |
 | `data-position` | `right` | Starting side: `left` or `right` |
+| `data-theme` | `auto` | Colours: `auto` matches the page (its background, a `dark`/`light` class or `data-theme`-style attribute on `<html>` or `<body>`, its text colour, then the system setting) and follows it when it changes; `light` or `dark` fixes them |
 
 Load it with `defer` so it never blocks the page. Major tag `@1` follows every 1.x
 release. To pin an exact file and check its hash with

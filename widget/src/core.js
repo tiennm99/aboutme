@@ -149,3 +149,71 @@ export function validateProfile(data, baseUrl) {
     events,
   };
 }
+
+const COLOR = /^(rgba?|oklch|oklab|lab|color)\((.*)\)$/i;
+
+/**
+ * Reads one number of a CSS colour function, where `100%` stands for `scale`.
+ * @param {string | undefined} token Number, percentage or `none`.
+ * @param {number} scale Value of `100%`.
+ * @returns {number} The number, NaN when it is missing or not a number.
+ */
+function channel(token, scale) {
+  if (token === 'none') return 0;
+  return token?.endsWith('%') ? (parseFloat(token) / 100) * scale : parseFloat(token ?? '');
+}
+
+/**
+ * Measures how light a computed CSS colour looks.
+ * Handles `rgb()`/`rgba()` (comma or space syntax), `oklch()`, `oklab()`,
+ * `lab()` (their lightness) and `color(srgb ...)`.
+ * @param {string} cssColor Colour as `getComputedStyle` returns it.
+ * @returns {number | null} Brightness from 0 (black) to 1 (white); null when the
+ *   colour is unknown or mostly transparent (alpha below 0.5).
+ */
+export function brightnessOf(cssColor) {
+  const match = COLOR.exec(String(cssColor ?? '').trim());
+  if (!match) return null;
+  const fn = match[1].toLowerCase();
+  const args = match[2].split(/[\s,/]+/).filter(Boolean);
+  let value;
+  if (fn === 'color') {
+    if (args.shift()?.toLowerCase() !== 'srgb') return null;
+    const [r, g, b] = args.map((token) => channel(token, 1));
+    value = 0.299 * r + 0.587 * g + 0.114 * b;
+  } else if (fn.startsWith('rgb')) {
+    const [r, g, b] = args.map((token) => channel(token, 255));
+    value = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+  } else {
+    value = channel(args[0], 1) / (fn.startsWith('ok') || args[0]?.endsWith('%') ? 1 : 100);
+  }
+  const alpha = args.length > 3 ? channel(args[3], 1) : 1;
+  if (!Number.isFinite(value) || !(alpha >= 0.5)) return null;
+  return Math.min(Math.max(value, 0), 1);
+}
+
+/**
+ * Picks the widget theme from what the host page shows, first answer wins:
+ * an opaque page background, an explicit dark/light marker, the text colour,
+ * and only when the text is mid-grey the visitor's system preference.
+ * @param {object} page Values read from the page.
+ * @param {string[]} page.backgrounds Computed background colours of body, then html.
+ * @param {(string | null)[]} page.markers Classes and theme attribute values of html and body.
+ * @param {string} page.text Computed text colour of body.
+ * @param {boolean} page.prefersDark Whether `prefers-color-scheme: dark` matches.
+ * @returns {'light' | 'dark'} The theme.
+ */
+export function pickTheme({ backgrounds, markers, text, prefersDark }) {
+  for (const color of backgrounds) {
+    const value = brightnessOf(color);
+    if (value !== null) return value < 0.5 ? 'dark' : 'light';
+  }
+  for (const marker of markers) {
+    const value = marker?.trim().toLowerCase();
+    if (value === 'dark' || value === 'light') return value;
+  }
+  const value = brightnessOf(text);
+  if (value !== null && value > 0.6) return 'dark';
+  if (value !== null && value < 0.4) return 'light';
+  return prefersDark ? 'dark' : 'light';
+}

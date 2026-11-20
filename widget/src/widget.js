@@ -3,12 +3,21 @@
  * page's CSS and the widget's CSS never affect each other.
  */
 
-import { describeDuration } from './core.js';
+import { describeDuration, pickTheme } from './core.js';
 
 const SIZE = 52;
 const MARGIN = 16;
+const GAP = 8;
+const PANEL_WIDTH = 280;
+// Below this much room above or below the bubble, the panel opens beside it,
+// even when its header, Hide button and first link rows would fit.
+const MIN_ROOM = 160;
+// Link rows the panel must show before it may open above or below the bubble.
+const MIN_ROWS = 2;
+const BESIDE_WIDTH = MARGIN * 2 + SIZE + GAP + PANEL_WIDTH;
 const DRAG_THRESHOLD = 6;
 const TARGET_RADIUS = 72;
+const THEME_ATTRIBUTES = ['data-theme', 'data-bs-theme', 'data-mode', 'data-color-mode', 'data-color-scheme'];
 
 const ICON_PATHS = {
   person: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/>',
@@ -33,10 +42,11 @@ const STYLE = `
   --bg: #ffffff; --fg: #1f2328; --muted: #59636e; --line: #d1d9e0; --hover: #f2f4f6;
   --accent: #2563eb; --accent-fg: #ffffff; --danger: #dc2626;
   font: 14px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  color: var(--fg);
+  color: var(--fg); color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  .root { --bg: #1c2128; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --hover: #262c36; --accent: #4493f8; }
+.root[data-t="dark"] {
+  --bg: #1c2128; --fg: #e6edf3; --muted: #9198a1; --line: #3d444d; --hover: #262c36; --accent: #4493f8;
+  color-scheme: dark;
 }
 svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .bubble {
@@ -48,24 +58,30 @@ svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width:
 .bubble svg { width: 26px; height: 26px; }
 .bubble img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 .bubble:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+a:focus-visible { outline-offset: -3px; }
 .bubble.dragging { cursor: grabbing; transition: none; }
 .panel {
-  position: fixed; z-index: 2147483000; width: min(280px, calc(100vw - ${MARGIN * 2}px));
+  position: fixed; z-index: 2147483000; width: ${PANEL_WIDTH}px; display: flex; flex-direction: column;
   background: var(--bg); border: 1px solid var(--line); border-radius: 14px; padding: 12px;
-  box-shadow: 0 8px 30px rgb(0 0 0 / 20%);
+  box-shadow: 0 8px 30px rgb(0 0 0 / 20%); animation: open .12s ease-out;
+  overflow-y: auto; overscroll-behavior: contain;
 }
+.panel.over { z-index: 2147483002; }
 .panel[hidden] { display: none; }
-.head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+@keyframes open { from { opacity: 0; transform: translateY(4px) scale(.98); } }
+.head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex: none; }
 .head img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
 .who { flex: 1; min-width: 0; }
-.name { font-weight: 600; }
-.tagline { color: var(--muted); font-size: 13px; }
-.icon-btn { border: 0; background: none; color: var(--muted); padding: 4px; border-radius: 6px; cursor: pointer; display: grid; }
+.name, .tagline { overflow-wrap: anywhere; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; }
+.name { font-weight: 600; -webkit-line-clamp: 2; line-clamp: 2; }
+.tagline { color: var(--muted); font-size: 13px; -webkit-line-clamp: 3; line-clamp: 3; }
+.icon-btn { border: 0; background: none; color: var(--muted); padding: 4px; border-radius: 6px; cursor: pointer; display: grid; align-self: flex-start; }
 .icon-btn:hover { background: var(--hover); color: var(--fg); }
-ul { list-style: none; margin: 0; padding: 0; }
+ul { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 a { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; color: var(--fg); text-decoration: none; }
 a:hover { background: var(--hover); }
-.hide { width: 100%; margin-top: 8px; padding: 6px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
+a span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hide { flex: none; width: 100%; margin-top: 8px; padding: 6px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
 .hide:hover { color: var(--fg); }
 .target {
   position: fixed; left: 50%; bottom: 32px; width: 64px; height: 64px; margin-left: -32px; z-index: 2147483000;
@@ -74,7 +90,8 @@ a:hover { background: var(--hover); }
 }
 .target[hidden] { display: none; }
 .target.active { transform: scale(1.25); background: var(--danger); }
-@media (prefers-reduced-motion: reduce) { .bubble, .target { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .bubble, .target { transition: none; } .panel { animation: none; } }
+@media print { .root { display: none; } }
 `;
 
 /**
@@ -105,16 +122,58 @@ function el(tag, className, content) {
 }
 
 /**
+ * Returns the visible viewport size without classic scrollbars.
+ * @returns {{ w: number, h: number }} Width and height in CSS pixels.
+ */
+function viewport() {
+  // In quirks mode the body, not the root element, reports the viewport.
+  const node = document.compatMode === 'BackCompat' ? document.body : document.documentElement;
+  return { w: node.clientWidth, h: node.clientHeight };
+}
+
+/**
+ * Clamps a value between a minimum and a maximum, the minimum winning.
+ * @param {number} value Value.
+ * @param {number} min Lower bound.
+ * @param {number} max Upper bound.
+ * @returns {number} The clamped value.
+ */
+function clamp(value, min, max) {
+  return Math.max(Math.min(value, max), min);
+}
+
+/**
+ * Reads the host page's colours and theme markers and picks the widget theme.
+ * @param {MediaQueryList} media The `prefers-color-scheme: dark` query.
+ * @returns {'light' | 'dark'} The theme.
+ */
+function pageTheme(media) {
+  const nodes = [document.documentElement, document.body];
+  const markers = [];
+  for (const node of nodes) {
+    markers.push(...['dark', 'light'].filter((name) => node.classList.contains(name)));
+    markers.push(...THEME_ATTRIBUTES.map((name) => node.getAttribute(name)));
+  }
+  return pickTheme({
+    backgrounds: [nodes[1], nodes[0]].map((node) => getComputedStyle(node).backgroundColor),
+    markers,
+    text: getComputedStyle(nodes[1]).color,
+    prefersDark: media.matches,
+  });
+}
+
+/**
  * Mounts the widget on the page.
  * @param {object} options Widget options.
  * @param {import('./core.js').Profile} options.profile Validated profile.
  * @param {'left' | 'right'} options.position Starting side of the screen.
+ * @param {'auto' | 'light' | 'dark'} options.theme Colour theme; `auto` follows the page.
  * @param {string} options.hide Hide period as written in the script tag.
  * @param {(event: string, target?: string) => void} options.track Sends an anonymous count.
  * @param {() => void} options.onDismiss Called once when the visitor dismisses the widget.
  * @returns {HTMLElement} The shadow host, to allow removal.
  */
-export function mount({ profile, position, hide, track, onDismiss }) {
+export function mount({ profile, position, theme, hide, track, onDismiss }) {
   const host = document.createElement('aboutme-widget');
   const shadow = host.attachShadow({ mode: 'open' });
   const root = el('div', 'root');
@@ -166,6 +225,7 @@ export function mount({ profile, position, hide, track, onDismiss }) {
     anchor.href = link.url;
     anchor.target = '_blank';
     anchor.rel = 'noopener noreferrer';
+    anchor.title = link.label;
     anchor.append(icon(link.icon), el('span', '', link.label));
     anchor.addEventListener('click', () => track('click', link.id));
     item.append(anchor);
@@ -180,37 +240,99 @@ export function mount({ profile, position, hide, track, onDismiss }) {
   target.hidden = true;
   target.append(icon('close'));
 
-  root.append(style, panel, target, bubble);
+  // The bubble comes first so Tab moves from it into the open panel.
+  root.append(style, bubble, panel, target);
   shadow.append(root);
   document.body.append(host);
+
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+  let frame = 0;
+  let timer = 0;
+  let observer = null;
+
+  /** Applies the fixed theme, or the one the page shows now. */
+  function applyTheme() {
+    root.dataset.t = theme === 'auto' ? pageTheme(media) : theme;
+  }
+
+  /** Re-reads the page theme once per frame, and again after a background transition. */
+  function themeChanged() {
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(applyTheme);
+    clearTimeout(timer);
+    timer = setTimeout(applyTheme, 400);
+  }
 
   let x = 0;
   let y = 0;
   let side = position;
+  // The bubble rests this far from the nearer of the top and bottom edges.
+  let fromBottom = true;
+  let gap = MARGIN * 2;
 
   /** Moves the bubble to the current coordinates. */
   function place() {
     bubble.style.transform = `translate(${x}px, ${y}px)`;
   }
 
-  /** Snaps the bubble to the nearest side and keeps it on screen. */
+  /** Puts the bubble on its side at its resting distance, kept on screen. */
   function snap() {
-    const maxY = window.innerHeight - SIZE - MARGIN;
-    side = x + SIZE / 2 < window.innerWidth / 2 ? 'left' : 'right';
-    x = side === 'left' ? MARGIN : window.innerWidth - SIZE - MARGIN;
-    y = Math.min(Math.max(y, MARGIN), Math.max(maxY, MARGIN));
+    const { w, h } = viewport();
+    x = side === 'left' ? MARGIN : w - SIZE - MARGIN;
+    y = clamp(fromBottom ? h - SIZE - gap : gap, MARGIN, h - SIZE - MARGIN);
     place();
   }
 
-  /** Places the panel beside the bubble, above or below whichever has more room. */
+  /** After a drag, picks the nearer side and edge and records the resting place. */
+  function settle() {
+    const { w, h } = viewport();
+    side = x + SIZE / 2 < w / 2 ? 'left' : 'right';
+    fromBottom = y + SIZE / 2 > h / 2;
+    const top = clamp(y, MARGIN, h - SIZE - MARGIN);
+    gap = fromBottom ? h - SIZE - top : top;
+    snap();
+  }
+
+  /**
+   * Places the panel above or below the bubble, whichever has more room, capped
+   * to that room. When that room cannot hold the header, the Hide button and the
+   * first link rows, it goes beside the bubble, or on a narrow screen over it.
+   */
   function placePanel() {
-    const width = panel.offsetWidth;
+    const { w, h } = viewport();
+    const above = y - GAP - MARGIN;
+    const below = h - y - SIZE - GAP - MARGIN;
+    const room = Math.max(above, below);
+    const width = Math.min(PANEL_WIDTH, w - MARGIN * 2);
+    panel.style.width = `${width}px`;
+    // Measure at the final width with nothing capped: everything but the list is fixed.
+    panel.style.maxHeight = 'none';
+    list.style.minHeight = '0px';
+    const row = list.firstElementChild?.offsetHeight ?? 0;
+    const fixed = panel.offsetHeight - list.offsetHeight;
+    const cramped = room < Math.max(MIN_ROOM, fixed + Math.min(list.scrollHeight, row * MIN_ROWS));
+    const beside = cramped && w >= BESIDE_WIDTH;
+    panel.classList.toggle('over', cramped && !beside);
+    // Always show one whole row; if even that does not fit, the whole panel scrolls.
+    list.style.minHeight = `${Math.min(list.scrollHeight, row)}px`;
+    panel.style.maxHeight = `${Math.max(cramped ? h - MARGIN * 2 : room, 0)}px`;
     const height = panel.offsetHeight;
-    const left = side === 'left' ? MARGIN : window.innerWidth - width - MARGIN;
-    const above = y - height - 8;
-    const top = above >= MARGIN ? above : Math.min(y + SIZE + 8, window.innerHeight - height - MARGIN);
-    panel.style.left = `${Math.max(left, MARGIN)}px`;
-    panel.style.top = `${Math.max(top, MARGIN)}px`;
+    let left = side === 'left' ? MARGIN : w - MARGIN - width;
+    let top;
+    if (!cramped) {
+      top = above >= below ? y - GAP - height : y + SIZE + GAP;
+    } else {
+      if (beside) left += side === 'left' ? SIZE + GAP : -SIZE - GAP;
+      top = clamp(y + SIZE / 2 - height / 2, MARGIN, h - MARGIN - height);
+    }
+    panel.style.left = `${left}px`;
+    panel.style.top = `${top}px`;
+  }
+
+  /** Keeps the bubble and the open panel on screen after a resize. */
+  function resize() {
+    snap();
+    if (!panel.hidden) placePanel();
   }
 
   /**
@@ -222,6 +344,7 @@ export function mount({ profile, position, hide, track, onDismiss }) {
     panel.hidden = !open;
     bubble.setAttribute('aria-expanded', String(open));
     if (open) {
+      applyTheme();
       placePanel();
       track('open');
     }
@@ -231,9 +354,13 @@ export function mount({ profile, position, hide, track, onDismiss }) {
   function dismiss() {
     track('dismiss');
     host.remove();
-    window.removeEventListener('resize', snap);
+    window.removeEventListener('resize', resize);
     document.removeEventListener('pointerdown', outside, true);
     document.removeEventListener('keydown', escape);
+    media.removeEventListener('change', themeChanged);
+    observer?.disconnect();
+    cancelAnimationFrame(frame);
+    clearTimeout(timer);
     onDismiss();
   }
 
@@ -292,7 +419,7 @@ export function mount({ profile, position, hide, track, onDismiss }) {
 
   /**
    * Ends a press: a tap toggles the panel; a drag dismisses over the target,
-   * otherwise snaps to a side. Taps are handled here rather than on `click`,
+   * otherwise settles on a side. Taps are handled here rather than on `click`,
    * because Chrome stops firing `click` for taps after a touch drag.
    * @param {PointerEvent} event Pointer event.
    */
@@ -309,7 +436,7 @@ export function mount({ profile, position, hide, track, onDismiss }) {
     target.hidden = true;
     target.classList.remove('active');
     if (drop) dismiss();
-    else snap();
+    else settle();
   }
 
   bubble.addEventListener('pointerup', endDrag);
@@ -324,14 +451,22 @@ export function mount({ profile, position, hide, track, onDismiss }) {
     bubble.focus();
   });
   hideButton.addEventListener('click', dismiss);
-  window.addEventListener('resize', snap);
+  window.addEventListener('resize', resize);
   document.addEventListener('pointerdown', outside, true);
   document.addEventListener('keydown', escape);
 
+  applyTheme();
+  if (theme === 'auto') {
+    // A media-driven change mutates no attribute, and the page may animate its
+    // background, so re-read it after the transition as for attribute changes.
+    media.addEventListener('change', themeChanged);
+    observer = new MutationObserver(themeChanged);
+    observer.observe(document.documentElement, { attributes: true });
+    observer.observe(document.body, { attributes: true });
+  }
+
   // Place without the snap animation, so the bubble does not slide in from the corner.
   bubble.classList.add('dragging');
-  x = side === 'left' ? 0 : window.innerWidth;
-  y = window.innerHeight - SIZE - MARGIN * 2;
   snap();
   bubble.getBoundingClientRect();
   bubble.classList.remove('dragging');

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STORAGE_KEY, describeDuration, hideFor, isHidden, parseDuration, validateProfile } from '../src/core.js';
+import { STORAGE_KEY, brightnessOf, describeDuration, hideFor, isHidden, parseDuration, pickTheme, validateProfile } from '../src/core.js';
 
 const DAY = 86_400_000;
 
@@ -102,5 +102,64 @@ describe('validateProfile', () => {
   it('sends no counts when events is missing or not http', () => {
     expect(validateProfile({ ...valid, events: undefined }, base).events).toBeNull();
     expect(validateProfile({ ...valid, events: 'javascript:alert(1)' }, base).events).toBeNull();
+  });
+});
+
+describe('brightnessOf', () => {
+  it('reads rgb and rgba in comma and space syntax', () => {
+    expect(brightnessOf('rgb(0, 0, 0)')).toBe(0);
+    expect(brightnessOf('rgb(255, 255, 255)')).toBeCloseTo(1);
+    expect(brightnessOf('rgb(255 255 255 / 0.9)')).toBeCloseTo(1);
+    expect(brightnessOf('rgba(28, 33, 40, 1)')).toBeLessThan(0.2);
+    expect(brightnessOf('rgb(100% 100% 100%)')).toBeCloseTo(1);
+  });
+
+  it('reads the lightness of oklch, oklab and lab', () => {
+    expect(brightnessOf('oklch(0.2 0.02 250)')).toBeCloseTo(0.2);
+    expect(brightnessOf('oklch(90% 0.02 250)')).toBeCloseTo(0.9);
+    expect(brightnessOf('oklab(0.7 0 0)')).toBeCloseTo(0.7);
+    expect(brightnessOf('lab(30 10 -20)')).toBeCloseTo(0.3);
+  });
+
+  it('reads color(srgb ...)', () => {
+    expect(brightnessOf('color(srgb 1 1 1)')).toBeCloseTo(1);
+    expect(brightnessOf('color(srgb 0.1 0.1 0.1 / 0.8)')).toBeCloseTo(0.1);
+    expect(brightnessOf('color(display-p3 1 1 1)')).toBeNull();
+  });
+
+  it('returns null for transparent, mostly transparent and unknown colours', () => {
+    expect(brightnessOf('transparent')).toBeNull();
+    expect(brightnessOf('rgba(0, 0, 0, 0)')).toBeNull();
+    expect(brightnessOf('rgb(0 0 0 / 40%)')).toBeNull();
+    expect(brightnessOf('rgba(0, 0, 0, 0.5)')).toBe(0);
+    expect(brightnessOf('hwb(0 0% 0%)')).toBeNull();
+    expect(brightnessOf('')).toBeNull();
+    expect(brightnessOf(undefined)).toBeNull();
+  });
+});
+
+describe('pickTheme', () => {
+  const page = { backgrounds: ['rgba(0, 0, 0, 0)', 'rgba(0, 0, 0, 0)'], markers: [], text: 'rgb(128, 128, 128)', prefersDark: false };
+
+  it('uses an opaque body background first, then the html background', () => {
+    expect(pickTheme({ ...page, backgrounds: ['rgb(17, 17, 17)', 'rgb(255, 255, 255)'], markers: ['light'] })).toBe('dark');
+    expect(pickTheme({ ...page, backgrounds: ['rgba(0, 0, 0, 0)', 'rgb(250, 250, 250)'], text: 'rgb(255, 255, 255)' })).toBe('light');
+  });
+
+  it('then an explicit marker, never reading a missing one as light', () => {
+    expect(pickTheme({ ...page, markers: [null, 'Dark '], prefersDark: false })).toBe('dark');
+    expect(pickTheme({ ...page, markers: ['light'], prefersDark: true })).toBe('light');
+    expect(pickTheme({ ...page, markers: [null, 'auto', ''], prefersDark: true })).toBe('dark');
+  });
+
+  it('then the text colour: light text means a dark page', () => {
+    expect(pickTheme({ ...page, text: 'rgb(238, 238, 238)' })).toBe('dark');
+    expect(pickTheme({ ...page, text: 'rgb(20, 20, 20)', prefersDark: true })).toBe('light');
+  });
+
+  it('uses the system preference only for mid-grey or unknown text', () => {
+    expect(pickTheme({ ...page, prefersDark: true })).toBe('dark');
+    expect(pickTheme({ ...page, prefersDark: false })).toBe('light');
+    expect(pickTheme({ ...page, text: 'bogus', prefersDark: true })).toBe('dark');
   });
 });
