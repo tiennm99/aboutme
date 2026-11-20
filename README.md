@@ -4,8 +4,8 @@ A floating bubble for your websites. Click it to see links about you (homepage,
 blog, GitHub, ...). Drag it onto the target at the bottom of the screen, like an
 Android chat bubble, or press "Hide", and it stays hidden for a period you choose.
 
-- `widget/`: the bubble, to be published to npm as `@aboutme/widget` and loaded from
-  jsDelivr. It is not published yet, so the tag below does not load until it is.
+- `widget/`: the bubble, published to npm as `@tiennm99/aboutme` and loaded from
+  jsDelivr.
 - `worker/`: a Cloudflare Worker that serves your `profile.json` and keeps anonymous
   counts of opens, link clicks and dismissals. No cookies, IPs or visitor ids.
 
@@ -15,7 +15,7 @@ Add this to the `<head>` of every site:
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/npm/@aboutme/widget@1"
+  src="https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1"
   data-profile="https://aboutme.tiennm99.workers.dev/profile.json"
   data-hide="7d"
   defer

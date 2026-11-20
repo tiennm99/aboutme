@@ -11,7 +11,7 @@
 Load it with `defer` so it never blocks the page. Major tag `@1` follows every 1.x
 release. To pin an exact file and check its hash with
 [SRI](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity),
-use a full version such as `@aboutme/widget@1.0.0/dist/aboutme.js` with an
+use a full version such as `@tiennm99/aboutme@1.0.0/dist/aboutme.js` with an
 `integrity` attribute; SRI does not work with `@1`, whose content changes.
 
 A site with a Content-Security-Policy must allow `cdn.jsdelivr.net` in
