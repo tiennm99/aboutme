@@ -36,7 +36,7 @@ Worker's tests check `profile.json` against it.
 ```
 
 - `icon` is one of `home`, `blog`, `github`, `facebook`, `linkedin`, `x`,
-  `youtube`, `email`, `link` (the default).
+  `youtube`, `email`, `telegram`, `cv`, `link` (the default).
 - Link URLs must be `https:`, `http:` or `mailto:`; anything else is dropped.
 - Unknown fields are ignored, so adding an optional field needs no new version.
   A breaking change raises `schemaVersion` together with a new widget major

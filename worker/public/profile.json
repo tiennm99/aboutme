@@ -1,8 +1,16 @@
 {
   "schemaVersion": 1,
-  "name": "tiennm99",
+  "name": "Tien Nguyen Minh",
+  "tagline": "Senior Java Software Engineer · Real-time backends",
+  "avatar": "https://avatars.githubusercontent.com/tiennm99?size=96",
   "events": "/e",
   "links": [
-    { "id": "github", "label": "GitHub", "url": "https://github.com/tiennm99", "icon": "github" }
+    { "id": "blog", "label": "Blog", "url": "https://miti99.com/", "icon": "blog" },
+    { "id": "cv", "label": "CV", "url": "https://tiennm99.github.io/cv/", "icon": "cv" },
+    { "id": "github", "label": "GitHub", "url": "https://github.com/tiennm99", "icon": "github" },
+    { "id": "linkedin", "label": "LinkedIn", "url": "https://www.linkedin.com/in/miti99/", "icon": "linkedin" },
+    { "id": "facebook", "label": "Facebook", "url": "https://www.facebook.com/tiennm99", "icon": "facebook" },
+    { "id": "telegram", "label": "Telegram", "url": "https://t.me/tiennm5", "icon": "telegram" },
+    { "id": "email", "label": "Email", "url": "mailto:tiennm99@outlook.com", "icon": "email" }
   ]
 }

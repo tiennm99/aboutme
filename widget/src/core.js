@@ -6,7 +6,7 @@
 export const SCHEMA_VERSION = 1;
 export const STORAGE_KEY = 'aboutme:hiddenUntil';
 export const DEFAULT_HIDE = '7d';
-export const ICONS = ['home', 'blog', 'github', 'facebook', 'linkedin', 'x', 'youtube', 'email', 'link'];
+export const ICONS = ['home', 'blog', 'github', 'facebook', 'linkedin', 'x', 'youtube', 'email', 'telegram', 'cv', 'link'];
 
 const UNIT_MS = { m: 60_000, h: 3_600_000, d: 86_400_000, w: 604_800_000 };
 const UNIT_NAMES = { m: 'minute', h: 'hour', d: 'day', w: 'week' };

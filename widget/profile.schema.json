@@ -26,7 +26,7 @@
           "label": { "type": "string", "minLength": 1, "maxLength": 40 },
           "url": { "type": "string", "pattern": "^(https?:|mailto:)" },
           "icon": {
-            "enum": ["home", "blog", "github", "facebook", "linkedin", "x", "youtube", "email", "link"]
+            "enum": ["home", "blog", "github", "facebook", "linkedin", "x", "youtube", "email", "telegram", "cv", "link"]
           }
         }
       }
