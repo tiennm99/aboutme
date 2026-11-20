@@ -99,7 +99,7 @@ matches the widget's version, runs every check and the e2e tests, then publishes
 npm version patch -w widget          # or minor / major
 v=$(node -p "require('./widget/package.json').version")
 git commit -am "chore(widget): release v$v"
-git tag "v$v"
+git tag -a "v$v" -m "v$v"   # annotated, so --follow-tags pushes it
 git push --follow-tags
 ```
 
