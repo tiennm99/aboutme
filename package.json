@@ -1,0 +1,28 @@
+{
+  "name": "aboutme-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "widget",
+    "worker"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "build": "npm run build -w widget",
+    "test": "npm test -w widget && npm test -w worker",
+    "test:e2e": "npm run test:e2e -w widget",
+    "check": "npm run lint && npm run build && npm test",
+    "deploy": "npm run deploy -w worker"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "eslint": "^10.0.0",
+    "eslint-plugin-jsdoc": "^65.0.0",
+    "globals": "^17.0.0"
+  },
+  "allowScripts": {
+    "esbuild": true,
+    "workerd": true,
+    "sharp": false
+  }
+}

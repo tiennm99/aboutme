@@ -1,0 +1,46 @@
+{
+  "name": "@aboutme/widget",
+  "version": "1.0.0",
+  "description": "A draggable floating bubble that shows links about the site's author, loaded from a profile JSON.",
+  "type": "module",
+  "license": "MIT",
+  "author": "tiennm99",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tiennm99/aboutme.git",
+    "directory": "widget"
+  },
+  "homepage": "https://github.com/tiennm99/aboutme#readme",
+  "keywords": [
+    "about-me",
+    "widget",
+    "floating-button",
+    "profile",
+    "links"
+  ],
+  "main": "dist/aboutme.js",
+  "jsdelivr": "dist/aboutme.js",
+  "unpkg": "dist/aboutme.js",
+  "files": [
+    "dist",
+    "profile.schema.json"
+  ],
+  "exports": {
+    ".": "./dist/aboutme.js",
+    "./profile.schema.json": "./profile.schema.json"
+  },
+  "scripts": {
+    "build": "node build.js",
+    "test": "vitest run",
+    "test:e2e": "npm run build && playwright test",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.50.0",
+    "esbuild": "^0.28.0",
+    "vitest": "^5.0.0"
+  }
+}

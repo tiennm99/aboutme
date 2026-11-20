@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "aboutme",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  // profile.json is served straight from assets; only unmatched paths such as POST /e reach the Worker.
+  "assets": { "directory": "public" },
+  "analytics_engine_datasets": [{ "binding": "EVENTS", "dataset": "aboutme_events" }],
+  // Off so no request logs (which include visitor IPs) are kept.
+  "observability": { "enabled": false }
+}

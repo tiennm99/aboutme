@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/tiennm99/aboutme/blob/main/widget/profile.schema.json",
+  "title": "aboutme profile, schema version 1",
+  "description": "Data the widget shows. Unknown fields are ignored, so new optional fields do not need a new schema version.",
+  "type": "object",
+  "required": ["schemaVersion", "name", "links"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "name": { "type": "string", "minLength": 1, "maxLength": 60 },
+    "tagline": { "type": "string", "maxLength": 120 },
+    "avatar": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "events": {
+      "type": "string",
+      "description": "Count endpoint, absolute or relative to the profile URL. Leave it out to send no counts."
+    },
+    "links": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "required": ["id", "label", "url"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9-]{1,32}$" },
+          "label": { "type": "string", "minLength": 1, "maxLength": 40 },
+          "url": { "type": "string", "pattern": "^(https?:|mailto:)" },
+          "icon": {
+            "enum": ["home", "blog", "github", "facebook", "linkedin", "x", "youtube", "email", "link"]
+          }
+        }
+      }
+    }
+  }
+}

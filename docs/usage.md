@@ -1,0 +1,94 @@
+# Usage
+
+## Script tag options
+
+| Attribute | Default | Meaning |
+| --- | --- | --- |
+| `data-profile` | required | URL of the profile JSON |
+| `data-hide` | `7d` | How long the bubble stays hidden after a dismissal: a number and `m`, `h`, `d` or `w` (`30m`, `12h`, `1d`, `2w`) |
+| `data-position` | `right` | Starting side: `left` or `right` |
+
+Load it with `defer` so it never blocks the page. Major tag `@1` follows every 1.x
+release. To pin an exact file and check its hash with
+[SRI](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity),
+use a full version such as `@aboutme/widget@1.0.0/dist/aboutme.js` with an
+`integrity` attribute; SRI does not work with `@1`, whose content changes.
+
+A site with a Content-Security-Policy must allow `cdn.jsdelivr.net` in
+`script-src` and the Worker's origin in `connect-src`.
+
+## Profile format
+
+[`widget/profile.schema.json`](../widget/profile.schema.json) is the contract; the
+Worker's tests check `profile.json` against it.
+
+```json
+{
+  "schemaVersion": 1,
+  "name": "Your name",
+  "tagline": "Optional short line",
+  "avatar": "https://... (optional, https only)",
+  "events": "/e",
+  "links": [
+    { "id": "github", "label": "GitHub", "url": "https://github.com/you", "icon": "github" }
+  ]
+}
+```
+
+- `icon` is one of `home`, `blog`, `github`, `facebook`, `linkedin`, `x`,
+  `youtube`, `email`, `link` (the default).
+- Link URLs must be `https:`, `http:` or `mailto:`; anything else is dropped.
+- Unknown fields are ignored, so adding an optional field needs no new version.
+  A breaking change raises `schemaVersion` together with a new widget major
+  (`@2`), and the Worker serves both until every site has moved.
+- Leave out `events` to send no counts.
+
+The Worker serves `profile.json` with `Cache-Control: max-age=3600,
+stale-while-revalidate=86400`, so an edit reaches visitors within about an hour.
+
+## Anonymous counts
+
+The widget sends `{"event":"open"}`, `{"event":"click","target":"<link id>"}` or
+`{"event":"dismiss"}` to `POST /e`. The Worker takes the site from the browser's
+`Origin` header, accepts only known events and link ids, and writes one data point
+to the Workers Analytics Engine dataset `aboutme_events`:
+
+| Column | Value |
+| --- | --- |
+| `index1`, `blob1` | Site hostname |
+| `blob2` | `open`, `click` or `dismiss` |
+| `blob3` | Link id for clicks, empty otherwise |
+
+No cookie, IP, visitor id or user agent is stored, and Workers logs are off. The
+only thing kept in the visitor's browser is the dismissal time, a choice the
+visitor made, which is never sent.
+
+Query the counts with the
+[Analytics Engine SQL API](https://developers.cloudflare.com/analytics/analytics-engine/sql-api/):
+
+```sql
+SELECT blob1 AS site, blob2 AS event, blob3 AS link, SUM(_sample_interval) AS count
+FROM aboutme_events
+WHERE timestamp > NOW() - INTERVAL '30' DAY
+GROUP BY site, event, link
+ORDER BY count DESC
+```
+
+## Development
+
+```sh
+npm install
+npm run check        # lint, build, unit tests
+npm run test:e2e     # Playwright drag and dismiss tests, desktop and touch
+npm run dev -w worker
+```
+
+The e2e tests use the system Chrome (`channel: 'chrome'`). Set `PW_CHANNEL=` to
+use Playwright's bundled Chromium instead (`npx playwright install chromium`).
+
+### Releasing the widget
+
+```sh
+npm version minor -w widget
+npm publish -w widget
+```
