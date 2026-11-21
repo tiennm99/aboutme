@@ -19,7 +19,7 @@ const profile = {
 // Orbit is the default; panel tests ask for the list unless they name a layout.
 const layoutAttr = (attrs) => (attrs.includes('data-layout') ? attrs : `data-layout="list" ${attrs}`);
 
-async function setup(page, { hide = '1d', attrs = '', head = '', data = profile, meta = 'width=device-width', lang = '' } = {}) {
+async function setup(page, { hide = '1d', attrs = '', head = '', data = profile, meta = 'width=device-width', lang = '', inline = false } = {}) {
   const events = [];
   const origins = [];
   await page.route(`${SITE}/`, (route) =>
@@ -28,7 +28,7 @@ async function setup(page, { hide = '1d', attrs = '', head = '', data = profile,
       // no-referrer is the strictest policy for the Origin header the Worker relies on.
       body: `<!doctype html>${lang ? `<html lang="${lang}">` : ''}<meta name="viewport" content="${meta}"><meta name="referrer" content="no-referrer">${head}
         <h1>Host page</h1>
-        <script src="${DATA}/aboutme.js" data-profile="${DATA}/profile.json" data-hide="${hide}" ${layoutAttr(attrs)} defer></script>`,
+        <script src="${DATA}/aboutme.js" ${inline ? '' : `data-profile="${DATA}/profile.json"`} data-hide="${hide}" ${layoutAttr(attrs)} defer>${inline ? JSON.stringify(data) : ''}</script>`,
     }),
   );
   await page.route(`${DATA}/aboutme.js`, (route) => route.fulfill({ contentType: 'text/javascript', body: bundle }));
@@ -76,6 +76,13 @@ test('opens the panel and counts the open and link clicks', async ({ page }) => 
   await (await popup).close();
   await expect.poll(() => events).toEqual([{ event: 'open' }, { event: 'click', target: 'home' }]);
   expect(origins).toEqual([SITE, SITE]);
+});
+
+test('reads a profile embedded in the script tag', async ({ page }) => {
+  const { events } = await setup(page, { inline: true, data: { ...profile, events: `${DATA}/e` } });
+  await bubble(page).click();
+  await expect(page.getByRole('link', { name: 'GitHub' })).toHaveAttribute('href', 'https://github.com/example');
+  await expect.poll(() => events).toEqual([{ event: 'open' }]);
 });
 
 test('closes the panel with Escape and with an outside click', async ({ page }) => {

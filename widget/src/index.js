@@ -3,7 +3,8 @@
  * the widget unless the visitor dismissed it within the hide period.
  *
  * Script tag options:
- * - `data-profile` (required): URL of the profile JSON.
+ * - `data-profile`: URL of the profile JSON. Without it, the profile JSON is read
+ *   from the script tag's own text, which browsers never run when `src` is set.
  * - `data-hide`: hide period after a dismissal, such as `1d` or `2w` (default `7d`).
  * - `data-position`: starting corner, `top-left`, `top-right`, `bottom-left` or
  *   `bottom-right` (default); `left` and `right` mean the bottom corners.
@@ -74,18 +75,23 @@ function track(url, event, target) {
  */
 async function start(script) {
   const profileUrl = script.dataset.profile;
+  const inline = profileUrl ? '' : script.textContent.trim();
   const hide = script.dataset.hide;
   const { position, offset } = script.dataset;
   const theme = ['light', 'dark'].includes(script.dataset.theme) ? script.dataset.theme : 'auto';
   const layout = parseLayout(script.dataset.layout);
-  if (!profileUrl || isHidden(storage(), Date.now())) return;
+  if ((!profileUrl && !inline) || isHidden(storage(), Date.now())) return;
 
   let profile;
   try {
-    const url = new URL(profileUrl, document.baseURI).href;
-    const response = await fetch(url, { credentials: 'omit' });
-    if (!response.ok) return;
-    profile = validateProfile(await response.json(), url);
+    if (inline) {
+      profile = validateProfile(JSON.parse(inline), document.baseURI);
+    } else {
+      const url = new URL(profileUrl, document.baseURI).href;
+      const response = await fetch(url, { credentials: 'omit' });
+      if (!response.ok) return;
+      profile = validateProfile(await response.json(), url);
+    }
   } catch {
     return;
   }
