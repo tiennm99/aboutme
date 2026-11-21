@@ -1,44 +1,18 @@
-# Simple setup: fork and deploy
+# Simple setup
 
 For anyone who likes the idea and wants it on their site without learning any
-tools. You need only a GitHub account and a web browser: no Node.js, no
-terminal, no Cloudflare. GitHub Pages hosts your links for free, and the
-bubble's script comes either from the jsDelivr CDN or from your own Pages
-(step 5).
+tools. The quickest way needs nothing but the ability to paste one tag into your
+pages: no account, no Node.js, no Cloudflare.
 
-What you get: the bubble with your own links, on any site where you can paste one
-line into the page's `<head>`. No visit counts; for those, see the
-[standard setup](setup-standard.md).
+The [demo page](https://tiennm99.github.io/aboutme/) does steps 1 to 3 for you:
+edit your links there and press **Copy** on the tag you want.
 
-## 1. Fork the repository
+What you get: the bubble with your own links. No visit counts; for those, see
+the [standard setup](setup-standard.md).
 
-Open [github.com/tiennm99/aboutme](https://github.com/tiennm99/aboutme) and press
-**Fork**, then **Create fork**. Keep the name `aboutme`; the addresses below
-assume it.
+## 1. Write your links
 
-## 2. Turn on Actions and Pages in your fork
-
-A new fork starts with both switched off, and nothing can be published until
-both are on.
-
-1. In your fork, open the **Actions** tab and press **I understand my workflows,
-   go ahead and enable them**.
-2. Open **Settings** > **Pages**. Under **Build and deployment** > **Source**,
-   choose **GitHub Actions**.
-
-## 3. Put in your own links
-
-Your links go in a **repository variable** named `ABOUTME_PROFILE`, not in a file.
-The Pages build reads the variable first, so you never edit the repository's own
-files, and syncing your fork later never conflicts.
-
-1. In your fork, open **Settings** > **Secrets and variables** > **Actions** and
-   select the **Variables** tab. Use **Variables**, not **Secrets**: your links are
-   public on the page anyway, and a secret could not be read back to fix a typo.
-2. Press **New repository variable**. Set **Name** to exactly `ABOUTME_PROFILE`
-   (capital letters, one underscore).
-3. Paste this into **Value**, replace the example details with yours, and press
-   **Add variable**:
+Your links are a small JSON document, the profile:
 
 ```json
 {
@@ -56,119 +30,144 @@ files, and syncing your fork later never conflicts.
 
 - Each link needs a unique `id` (lowercase letters, digits or `-`), the `label`
   people see, a `url` starting with `https:`, `http:` or `mailto:`, and an
-  `icon`. The icons are `home`, `blog`, `github`, `facebook`, `linkedin`, `x`,
-  `youtube`, `email`, `telegram`, `cv` and `link`. Up to 12 links.
-- `tagline` and `avatar` are optional; delete a line you do not want, and mind the
-  commas: the last item in a list has none. Keep `"schemaVersion": 1` as it is.
-- Saving a variable does not publish anything by itself. Open **Actions** >
-  **Pages** > **Run workflow** > **Run workflow** to publish it.
+  `icon`: `home`, `blog`, `github`, `facebook`, `linkedin`, `x`, `youtube`,
+  `email`, `telegram`, `cv` or `link`. Up to 12 links.
+- `tagline` and `avatar` are optional. Mind the commas: the last item in a list
+  has none. Keep `"schemaVersion": 1` as it is.
 
-Without the variable, the build uses the original author's
-`worker/public/profile.json`, so a page showing someone else's name means the
-variable is missing or misnamed.
+The full format is in [usage.md](usage.md#profile-format).
 
-## 4. Check that it is live
+## 2. Choose where your links live
 
-Open the **Actions** tab and wait for the **Pages** run to show a green tick
-(about a minute). Then open:
+| | Where | Best for |
+| --- | --- | --- |
+| A | Inside the script tag | One site, or the fewest steps |
+| B | A `profile.json` file on your site | Keeping links apart from the page code |
+| C | Your fork's GitHub Pages | Several sites sharing one list of links |
 
-```text
-https://<your-github-username>.github.io/aboutme/
-```
+### A: inside the script tag
 
-The page shows the bubble with your links and the exact line to copy into your
-site. If the run is red, open it: the build checks your profile and stops with a
-message saying what is wrong, such as a missing comma or a link with a bad URL.
-Fix the variable and run the workflow again.
+Put the JSON between the opening and closing script tags (step 3 shows it in
+place). Browsers never run text inside a tag that has `src`, so the widget reads
+it from there. Nothing else to host. Needs widget 1.8.0 or later.
 
-## 5. Add the bubble to your site
+### B: a file on your site
 
-Paste one of these into the `<head>` of every page, or of the shared layout or
-template your site builder uses. Both read your links from your own Pages; they
-differ only in where the bubble's script comes from.
+Save the JSON as `profile.json` and upload it with your pages. In step 3, point
+`data-profile` at it: a path such as `/profile.json` for the same site, or a full
+`https://` address. A file on another host must be served with
+`Access-Control-Allow-Origin: *` (GitHub Pages does this).
 
-### Option A: script from the CDN (recommended)
+### C: your fork's GitHub Pages
+
+One list of links, shared by every site you put the tag on, changed in one place.
+
+1. Fork [tiennm99/aboutme](https://github.com/tiennm99/aboutme) on GitHub. Keep
+   the name `aboutme`; the addresses below assume it.
+2. In the fork, open the **Actions** tab and press **I understand my workflows,
+   go ahead and enable them**. Then open **Settings** > **Pages** and, under
+   **Build and deployment** > **Source**, choose **GitHub Actions**. A new fork
+   has both switched off.
+3. Open **Settings** > **Secrets and variables** > **Actions**, select the
+   **Variables** tab, and press **New repository variable**. Set **Name** to
+   exactly `ABOUTME_PROFILE` and paste your JSON into **Value**.
+   - Use **Variables**, not **Secrets**: your links are public on the page
+     anyway, and a secret could not be read back to fix a typo.
+   - Keeping the links in a variable, not in a file, means syncing your fork
+     later never conflicts.
+4. Open **Actions** > **Pages** > **Run workflow**. Saving a variable does not
+   publish anything by itself.
+5. When the run shows a green tick, open
+   `https://<your-github-username>.github.io/aboutme/`: the bubble there shows
+   your links. If the run is red, open it: the build checks your profile and
+   says what is wrong. Fix the variable and run it again.
+
+Your profile is then at
+`https://<your-github-username>.github.io/aboutme/profile.json`. Without the
+variable, the build uses the original author's `worker/public/profile.json`, so
+a page showing someone else's name means the variable is missing or misnamed.
+
+To change your links later, edit the variable (pencil icon) and run the
+**Pages** workflow again. GitHub Pages caches files for 10 minutes.
+
+## 3. Choose where the script comes from
+
+Paste one tag into the `<head>` of every page, or of the shared layout or
+template your site builder uses. The examples below embed the profile (A). For B
+or C, leave the tag empty and add `data-profile` instead:
 
 ```html
-<script
-  src="https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1"
-  data-profile="https://<your-github-username>.github.io/aboutme/profile.json"
-  defer
-></script>
+<script src="https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1"
+  data-profile="https://<your-github-username>.github.io/aboutme/profile.json" defer></script>
 ```
 
-The script is the published npm package, served by [jsDelivr](https://www.jsdelivr.com/).
+### 1. From npm, through the jsDelivr CDN (recommended)
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1" defer>
+{ "schemaVersion": 1, "name": "Your name", "links": [
+  { "id": "github", "label": "GitHub", "url": "https://github.com/<you>", "icon": "github" }
+] }
+</script>
+```
 
 - **Faster for returning visitors.** jsDelivr lets browsers keep the script for
-  7 days; GitHub Pages only for 10 minutes, after which the browser checks
-  again. A first visit is about as fast either way, since both are served from
-  CDNs near the visitor.
-- **Updates on its own.** `@1` follows every compatible release, so you get
-  fixes and new features without syncing your fork. A breaking change comes as
-  `@2` and never reaches `@1` sites.
+  7 days; GitHub Pages only for 10 minutes, after which the browser checks again.
+  A first visit is about as fast either way, since both are served from CDNs
+  near the visitor.
+- **Updates on its own.** `@1` follows every compatible release. A breaking
+  change comes as `@2` and never reaches `@1` sites.
 - **Can be pinned.** Swap `@1` for an exact version with an
   [SRI hash](usage.md#script-tag-options) if a site must never change unreviewed.
 
-### Option B: script from your own Pages
+### 2. From this project's GitHub Pages
 
 ```html
-<script
-  src="https://<your-github-username>.github.io/aboutme/aboutme.js"
-  data-profile="https://<your-github-username>.github.io/aboutme/profile.json"
-  defer
-></script>
+<script src="https://tiennm99.github.io/aboutme/aboutme.js" defer>
+{ ... your profile ... }
+</script>
 ```
 
-Everything comes from your fork, with no third-party CDN.
+Built from this repository's latest code on every change, with no npm involved.
+It is not versioned, so it changes whenever the project does, and it can be a
+step ahead of the npm release. With option C, your fork serves the same file at
+`https://<your-github-username>.github.io/aboutme/aboutme.js`, which changes only
+when you sync your fork (**Sync fork** > **Update branch**).
 
-- **Full control.** The script is built from your fork, so changes you make to
-  the widget's code show up on your sites.
-- **Stays as it is.** It changes only when you sync your fork (see below).
-- **Fewer outside hosts.** Handy when a site's Content-Security-Policy should
-  list only your own addresses.
+### 3. Self-hosted on your own site
 
-Pick A unless you changed the widget or want nothing loaded from a CDN. You can
-switch at any time by changing the `src` line.
+Download [aboutme.js](https://tiennm99.github.io/aboutme/aboutme.js), upload it
+with your pages, and load it from there:
+
+```html
+<script src="/aboutme.js" defer>
+{ ... your profile ... }
+</script>
+```
+
+Nothing loads from another host, which keeps a strict Content-Security-Policy
+simple, and the script changes only when you replace the file. To update,
+download it again.
 
 Optional attributes such as `data-hide="7d"`, `data-position="bottom-left"` or
-`data-layout="list"` work with both and are listed in
+`data-layout="list"` work with every option and are listed in
 [usage.md](usage.md#script-tag-options).
-
-## Changing your links later
-
-Edit the `ABOUTME_PROFILE` variable (**Settings** > **Secrets and variables** >
-**Actions** > **Variables**, then the pencil icon), then run the **Pages**
-workflow again. GitHub Pages caches files for 10 minutes, so give it that long
-after the run turns green.
-
-## Getting widget updates
-
-With option A there is nothing to do. With option B, your fork keeps the widget
-version it was built from. To take newer versions,
-press **Sync fork** > **Update branch** on your fork's main page; the Pages
-workflow then rebuilds. If nothing starts, open **Actions** > **Pages** > **Run
-workflow**.
-
-Your links live in the variable, which a sync never touches. If you edited files
-in your fork instead, a sync can clash with them; GitHub then offers to open a
-pull request, which you resolve by keeping your own lines. You never have to
-sync; your copy keeps working as it is.
 
 ## Limits
 
 - No visit counts.
-- With option B, no version pinning or [SRI](usage.md#script-tag-options) on the
-  script.
+- Options 2 and 3 have no version to pin or check with SRI.
 - Several project sites on the same `github.io` address share the hide period;
   see [known issues](known-issues.md).
 
-When you want counts or your own domain, move to the [standard setup](setup-standard.md). Copy your variable's value into
+When you want counts or your own domain, move to the
+[standard setup](setup-standard.md). Copy your profile into
 `worker/public/profile.json` there, and add `"events": "/e"`.
 
 ## Ideas, problems, improvements
 
 If something is unclear, broken, or could be better, please
-[open an issue](https://github.com/tiennm99/aboutme/issues/new): a question, a bug,
-or an idea such as a new icon or language is all welcome. Pull requests are
+[open an issue](https://github.com/tiennm99/aboutme/issues/new): a question, a
+bug, or an idea such as a new icon or language is all welcome. Pull requests are
 welcome too; [usage.md](usage.md#development) shows how to build and test. A
 change made here reaches everyone on `@1`, including you.

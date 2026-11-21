@@ -8,13 +8,13 @@ framework, no cookies. [Live demo](https://tiennm99.github.io/aboutme/).
 ```html
 <script
   src="https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1"
-  data-profile="https://<your-worker>.workers.dev/profile.json"
-  data-hide="7d"
+  data-profile="https://example.com/profile.json"
   defer
 ></script>
 ```
 
-The profile format is in [`profile.schema.json`](profile.schema.json). Setups (GitHub Pages, or a
+Or put the profile JSON inside the script tag instead of `data-profile`. The
+profile format is in [`profile.schema.json`](profile.schema.json). Setups (GitHub Pages, or a
 Cloudflare Worker with anonymous counts) and options: [github.com/tiennm99/aboutme](https://github.com/tiennm99/aboutme).
 
 MIT licensed.

@@ -1,0 +1,230 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>aboutme: a floating about-me bubble for any website</title>
+  <meta name="description" content="One script tag adds a draggable bubble that shows your blog, GitHub, CV and socials. No framework, no cookies.">
+  <script src="aboutme.js" data-profile="profile.json" defer></script>
+  <style>
+    :root {
+      --bg: #f7f7f5; --card: #ffffff; --text: #1c1c1a; --muted: #5f5f5a; --line: #e3e3de;
+      --accent: #0f766e; --accent-soft: #e6f4f2; --code-bg: #f1f1ed; --ok: #15803d; --bad: #b91c1c;
+      color-scheme: light;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #121312; --card: #1b1c1b; --text: #ececea; --muted: #a3a39e; --line: #2e302e;
+        --accent: #2dd4bf; --accent-soft: #10302c; --code-bg: #232523; --ok: #4ade80; --bad: #f87171;
+        color-scheme: dark;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--bg); color: var(--text);
+      font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    main { max-width: 760px; margin: 0 auto; padding: 56px 16px 96px; }
+    header { margin-bottom: 40px; }
+    .eyebrow { color: var(--accent); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; font-size: 13px; margin: 0 0 8px; }
+    h1 { font-size: clamp(32px, 6vw, 48px); line-height: 1.1; margin: 0 0 16px; letter-spacing: -.02em; }
+    .lead { font-size: 18px; color: var(--muted); margin: 0 0 20px; }
+    .hint { display: inline-flex; gap: 8px; align-items: center; background: var(--accent-soft); color: var(--text); border-radius: 999px; padding: 6px 14px; font-size: 14px; }
+    .features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 28px 0 0; padding: 0; list-style: none; }
+    .features li { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; font-size: 14px; color: var(--muted); }
+    .features b { display: block; color: var(--text); font-size: 15px; }
+    @media (min-width: 720px) { .features { grid-template-columns: repeat(4, 1fr); } }
+    h2 { font-size: 22px; margin: 48px 0 6px; letter-spacing: -.01em; }
+    h2 .n { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; background: var(--accent); color: var(--bg); font-size: 15px; margin-right: 10px; vertical-align: 2px; }
+    .sub { color: var(--muted); margin: 0 0 16px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px; margin-bottom: 14px; }
+    .card h3 { margin: 0 0 4px; font-size: 17px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .card p { margin: 0 0 12px; color: var(--muted); font-size: 15px; }
+    .badge { font-size: 12px; font-weight: 600; background: var(--accent-soft); color: var(--accent); border-radius: 999px; padding: 2px 10px; }
+    textarea, input[type=text] {
+      width: 100%; font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: var(--text);
+      background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px;
+    }
+    textarea { min-height: 220px; resize: vertical; }
+    textarea:focus, input:focus, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+    .status { font-size: 14px; margin: 8px 0 0; min-height: 1.6em; }
+    .status.ok { color: var(--ok); } .status.bad { color: var(--bad); }
+    .choice { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+    .choice label { display: flex; gap: 8px; align-items: center; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 10px 14px; cursor: pointer; font-size: 15px; }
+    .choice label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+    #file-opts[hidden] { display: none; }
+    .snippet { position: relative; }
+    pre {
+      margin: 0; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px;
+      padding: 14px 92px 14px 14px; overflow-x: auto; font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; white-space: pre;
+    }
+    .copy {
+      position: absolute; top: 8px; right: 8px; font: 600 13px system-ui, sans-serif; color: var(--bg); background: var(--accent);
+      border: 0; border-radius: 8px; padding: 7px 12px; cursor: pointer;
+    }
+    .copy.done { background: var(--ok); }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 10px; }
+    .btn { font: 600 14px system-ui, sans-serif; color: var(--accent); background: transparent; border: 1px solid var(--accent); border-radius: 8px; padding: 7px 12px; cursor: pointer; text-decoration: none; }
+    a { color: var(--accent); }
+    footer { margin-top: 56px; padding-top: 24px; border-top: 1px solid var(--line); color: var(--muted); font-size: 15px; }
+    footer ul { padding-left: 18px; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">aboutme</p>
+    <h1>Let every site you build lead back to you.</h1>
+    <p class="lead">One script tag adds a small floating bubble. Tap it and your blog, GitHub, CV and socials fly out around it.</p>
+    <span class="hint">Try it: the bubble is in the corner of this page. Drag it, or drop it on the target to hide it.</span>
+    <ul class="features">
+      <li><b>One line of HTML</b>Works on any site: plain HTML, Jekyll, Hugo, WordPress.</li>
+      <li><b>Private</b>No cookies, no tracking, no visitor ids.</li>
+      <li><b>Fits in</b>Follows the page's light or dark theme; English and Vietnamese.</li>
+      <li><b>Free</b>Open source, MIT licensed, nothing to pay for.</li>
+    </ul>
+  </header>
+
+  <h2><span class="n">1</span>Write your links</h2>
+  <p class="sub">Edit the example. Icons: <code>home</code>, <code>blog</code>, <code>github</code>, <code>facebook</code>, <code>linkedin</code>, <code>x</code>, <code>youtube</code>, <code>email</code>, <code>telegram</code>, <code>cv</code>, <code>link</code>.</p>
+  <textarea id="profile" spellcheck="false" aria-label="Your profile JSON"></textarea>
+  <p class="status" id="status" role="status"></p>
+
+  <h2><span class="n">2</span>Choose where your links live</h2>
+  <div class="choice" role="radiogroup" aria-label="Where the profile lives">
+    <label><input type="radio" name="where" value="inline" checked> Inside the script tag</label>
+    <label><input type="radio" name="where" value="file"> A JSON file on your site</label>
+  </div>
+  <div id="file-opts" hidden>
+    <div class="card">
+      <h3>Save this as a file on your site</h3>
+      <p>Upload it next to your pages, then enter its address. A path such as <code>/profile.json</code> works when it is on the same site; use a full <code>https://</code> address when the file is elsewhere, and make sure that host allows cross-origin requests.</p>
+      <div class="row">
+        <button class="btn" type="button" id="download">Download profile.json</button>
+        <button class="btn" type="button" id="copy-json">Copy JSON</button>
+      </div>
+      <p style="margin:14px 0 6px">Address of the file:</p>
+      <input type="text" id="file-url" value="/profile.json" aria-label="Address of your profile file" spellcheck="false">
+    </div>
+  </div>
+
+  <h2><span class="n">3</span>Copy the script tag</h2>
+  <p class="sub">Paste it into the <code>&lt;head&gt;</code> of every page, or of your site's shared layout.</p>
+
+  <div class="card">
+    <h3>From npm, through the jsDelivr CDN <span class="badge">Recommended</span></h3>
+    <p>Fast worldwide, cached by browsers for 7 days, and <code>@1</code> picks up every compatible update on its own.</p>
+    <div class="snippet"><pre id="tag-cdn"></pre><button class="copy" type="button" data-for="tag-cdn">Copy</button></div>
+  </div>
+
+  <div class="card">
+    <h3>From this project's GitHub Pages</h3>
+    <p>No npm involved: the script is built from this repository's latest code. Not versioned, so it changes whenever the project does.</p>
+    <div class="snippet"><pre id="tag-pages"></pre><button class="copy" type="button" data-for="tag-pages">Copy</button></div>
+  </div>
+
+  <div class="card">
+    <h3>Self-hosted on your own site</h3>
+    <p>Download the script and serve it yourself: nothing loads from another host, and it only changes when you replace the file.</p>
+    <div class="row" style="margin:0 0 12px"><a class="btn" href="aboutme.js" download>Download aboutme.js</a></div>
+    <div class="snippet"><pre id="tag-self"></pre><button class="copy" type="button" data-for="tag-self">Copy</button></div>
+  </div>
+
+  <p class="sub">More options (hide period, position, layout, theme, language) are in the <a href="https://github.com/tiennm99/aboutme/blob/main/docs/usage.md#script-tag-options">usage guide</a>. Want visit counts? See the <a href="https://github.com/tiennm99/aboutme/blob/main/docs/setup-standard.md">standard setup</a>.</p>
+
+  <footer>
+    <p><b>Help make it better.</b> Questions, bugs and ideas such as a new icon, language or layout are welcome as <a href="https://github.com/tiennm99/aboutme/issues/new">issues</a>, and pull requests too. If aboutme is on your site, a <a href="https://github.com/tiennm99/aboutme">star on GitHub</a> helps others find it.</p>
+    <ul>
+      <li><a href="https://github.com/tiennm99/aboutme">Source code</a></li>
+      <li><a href="https://github.com/tiennm99/aboutme/blob/main/docs/setup-simple.md">Setup guide</a></li>
+      <li><a href="https://www.npmjs.com/package/@tiennm99/aboutme">npm package</a></li>
+    </ul>
+  </footer>
+</main>
+
+<script>
+  const EXAMPLE = {
+    schemaVersion: 1,
+    name: 'Your name',
+    tagline: 'What you do, in a few words',
+    links: [
+      { id: 'blog', label: 'Blog', url: 'https://example.com/', icon: 'blog' },
+      { id: 'github', label: 'GitHub', url: 'https://github.com/your-username', icon: 'github' },
+      { id: 'email', label: 'Email', url: 'mailto:you@example.com', icon: 'email' },
+    ],
+  };
+  const base = new URL('.', location.href).href;
+  const $ = (id) => document.getElementById(id);
+  const sources = {
+    'tag-cdn': 'https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1',
+    'tag-pages': base + 'aboutme.js',
+    'tag-self': '/aboutme.js',
+  };
+  // Pretty JSON with one link per line, so the snippets stay short.
+  function pretty(data) {
+    const lines = Object.entries(data).map(([key, value]) =>
+      key === 'links' && Array.isArray(value)
+        ? '  "links": [\n' + value.map((link) => '    ' + JSON.stringify(link)).join(',\n') + '\n  ]'
+        : '  ' + JSON.stringify(key) + ': ' + JSON.stringify(value));
+    return '{\n' + lines.join(',\n') + '\n}';
+  }
+  $('profile').value = pretty(EXAMPLE);
+
+  // Returns the parsed profile, or an error message.
+  function read() {
+    let data;
+    try {
+      data = JSON.parse($('profile').value);
+    } catch (error) {
+      return { error: 'Not valid JSON yet: ' + error.message };
+    }
+    if (!data || data.schemaVersion !== 1) return { error: 'Keep "schemaVersion": 1.' };
+    if (typeof data.name !== 'string' || !data.name.trim()) return { error: 'Add a "name".' };
+    const links = Array.isArray(data.links) ? data.links : [];
+    const bad = links.filter((l) => !l || !/^[a-z0-9-]{1,32}$/.test(l.id) || !l.label || !/^(https?:|mailto:)/.test(l.url || ''));
+    if (!links.length) return { error: 'Add at least one link.' };
+    if (bad.length) return { error: 'Each link needs an "id" (lowercase letters, digits or -), a "label" and an https:, http: or mailto: "url".' };
+    return { data };
+  }
+
+  function render() {
+    const { data, error } = read();
+    $('status').textContent = error || 'Looks good: ' + data.links.length + ' link' + (data.links.length === 1 ? '' : 's') + '.';
+    $('status').className = 'status ' + (error ? 'bad' : 'ok');
+    const inline = document.querySelector('input[name=where]:checked').value === 'inline';
+    $('file-opts').hidden = inline;
+    const json = data ? pretty(data) : $('profile').value;
+    for (const [id, src] of Object.entries(sources)) {
+      $(id).textContent = inline
+        ? '<script src="' + src + '" defer>\n' + json.replace(/<\//g, '<\\/') + '\n</' + 'script>'
+        : '<script src="' + src + '" data-profile="' + ($('file-url').value.trim() || '/profile.json') + '" defer></' + 'script>';
+    }
+  }
+
+  async function copyText(text, button, label) {
+    try {
+      await navigator.clipboard.writeText(text);
+      button.textContent = 'Copied';
+      button.classList.add('done');
+    } catch {
+      button.textContent = 'Select and copy';
+    }
+    setTimeout(() => { button.textContent = label; button.classList.remove('done'); }, 1600);
+  }
+
+  document.querySelectorAll('.copy').forEach((button) =>
+    button.addEventListener('click', () => copyText($(button.dataset.for).textContent, button, 'Copy')));
+  $('copy-json').addEventListener('click', (event) => copyText($('profile').value, event.currentTarget, 'Copy JSON'));
+  $('download').addEventListener('click', () => {
+    const blob = new Blob([$('profile').value + '\n'], { type: 'application/json' });
+    const link = Object.assign(document.createElement('a'), { href: URL.createObjectURL(blob), download: 'profile.json' });
+    link.click();
+    URL.revokeObjectURL(link.href);
+  });
+  $('profile').addEventListener('input', render);
+  $('file-url').addEventListener('input', render);
+  document.querySelectorAll('input[name=where]').forEach((radio) => radio.addEventListener('change', render));
+  render();
+</script>
+</body>
+</html>

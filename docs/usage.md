@@ -4,7 +4,7 @@
 
 | Attribute | Default | Meaning |
 | --- | --- | --- |
-| `data-profile` | required | URL of the profile JSON |
+| `data-profile` | none | URL of the profile JSON. Without it, the profile JSON is read from the text inside the script tag (1.8.0 and later), which browsers never run when `src` is set; it must not contain `</script` |
 | `data-hide` | `7d` | How long the bubble stays hidden after a dismissal: a number and `m`, `h`, `d` or `w` (`30m`, `12h`, `1d`, `2w`) |
 | `data-position` | `bottom-right` | Starting corner: `top-left`, `top-right`, `bottom-left` or `bottom-right`; `left` and `right` mean the bottom corners, and anything else falls back to `bottom-right` |
 | `data-offset` | `32` | Starting distance in px from the top or bottom edge (`24` or `24px`); clamped to at least 16 and at most what keeps the bubble on screen |
@@ -27,6 +27,17 @@ matches, all of them show.
 Auto mode reads only `<html>` and `<body>`. A site that paints its background
 and text on a wrapper element, or switches theme by swapping a stylesheet,
 should set `data-theme` (or a `dark`/`light` class on `<html>`).
+
+An embedded profile looks like this; `events` in it resolves against the page's
+address, so give a full URL when counting:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1" defer>
+{ "schemaVersion": 1, "name": "Your name", "links": [
+  { "id": "github", "label": "GitHub", "url": "https://github.com/you", "icon": "github" }
+] }
+</script>
+```
 
 Load it with `defer` so it never blocks the page. Major tag `@1` follows every 1.x
 release. To pin an exact file and check its hash with

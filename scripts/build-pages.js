@@ -1,7 +1,7 @@
 /**
  * Builds the GitHub Pages site for the simple setup into `_site/`: the widget
  * script, the profile without a count endpoint (Pages has no Worker to
- * receive counts) and a demo page that loads both.
+ * receive counts) and the demo page in `pages/index.html`, which loads both.
  *
  * The profile comes from the `ABOUTME_PROFILE` environment variable when it is
  * set (the Pages workflow fills it from the repository variable of that name),
@@ -64,30 +64,4 @@ copyFileSync('widget/dist/aboutme.js', `${out}/aboutme.js`);
 delete profile.events;
 writeFileSync(`${out}/profile.json`, `${JSON.stringify(profile, null, 2)}\n`);
 
-writeFileSync(
-  `${out}/index.html`,
-  `<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>aboutme</title>
-  <script src="aboutme.js" data-profile="profile.json" defer></script>
-</head>
-<body>
-  <h1>aboutme</h1>
-  <p>The bubble on this page is the widget. To add it to your own site, put one of these in the site's &lt;head&gt;.</p>
-  <p>Script from the jsDelivr CDN (recommended):</p>
-  <pre id="cdn"></pre>
-  <p>Script from this site:</p>
-  <pre id="self"></pre>
-  <script>
-    const base = new URL('.', location.href).href;
-    const tag = (src) => '<script src="' + src + '" data-profile="' + base + 'profile.json" defer></' + 'script>';
-    document.getElementById('cdn').textContent = tag('https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1');
-    document.getElementById('self').textContent = tag(base + 'aboutme.js');
-  </script>
-</body>
-</html>
-`,
-);
+copyFileSync('pages/index.html', `${out}/index.html`);
