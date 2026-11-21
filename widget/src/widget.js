@@ -213,6 +213,11 @@ export function mount({ profile, placement, lang, theme, layout, hide, track, on
   const root = el('div', 'root');
   // The list look keeps the base styles; grid and icons are styled through this attribute.
   if (layout !== 'list') root.dataset.l = layout;
+  // Inline custom properties win over both theme rules, so one accent serves light and dark.
+  if (profile.accent) {
+    root.style.setProperty('--accent', profile.accent.color);
+    root.style.setProperty('--accent-fg', profile.accent.fg);
+  }
   const style = el('style');
   style.textContent = STYLE;
 

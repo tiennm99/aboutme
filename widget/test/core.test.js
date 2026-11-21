@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   POSITION_KEY,
+  parseAccent,
   STORAGE_KEY,
   STRINGS,
   brightnessOf,
@@ -97,6 +98,7 @@ describe('validateProfile', () => {
       avatar: 'https://example.com/a.png',
       events: 'https://example.workers.dev/e',
       links: [{ id: 'github', label: 'GitHub', url: 'https://github.com/example', icon: 'github' }],
+      accent: null,
     });
   });
 
@@ -350,5 +352,31 @@ describe('visibleLinks', () => {
   it('keeps every link when all of them point at the current site', () => {
     const own = [links[0], { id: 'cv', url: 'https://site.test/cv' }];
     expect(visibleLinks(own, 'https://site.test/cv')).toEqual(own);
+  });
+});
+
+describe('parseAccent', () => {
+  it('is read by validateProfile', () => {
+    const base = 'https://example.workers.dev/profile.json';
+    const data = { schemaVersion: 1, name: 'A', links: [{ id: 'x', label: 'X', url: 'https://x.com' }] };
+    expect(validateProfile({ ...data, accent: '#123' }, base).accent).toEqual({ color: '#112233', fg: '#ffffff' });
+    expect(validateProfile({ ...data, accent: 'blue' }, base).accent).toBeNull();
+  });
+
+  it('accepts #rgb and #rrggbb and normalizes them', () => {
+    expect(parseAccent('#0F766E')).toEqual({ color: '#0f766e', fg: '#ffffff' });
+    expect(parseAccent(' #fc0 ')).toEqual({ color: '#ffcc00', fg: '#111111' });
+  });
+
+  it('picks the text colour with the higher contrast', () => {
+    expect(parseAccent('#000000').fg).toBe('#ffffff');
+    expect(parseAccent('#ffffff').fg).toBe('#111111');
+    expect(parseAccent('#2563eb').fg).toBe('#ffffff');
+  });
+
+  it('rejects anything that is not a hex colour, so no other CSS gets in', () => {
+    for (const bad of [undefined, 42, '', 'red', '#12', '#12345', '#1234567', 'rgb(0,0,0)', '#fff;background:url(x)', 'var(--x)']) {
+      expect(parseAccent(bad)).toBeNull();
+    }
   });
 });

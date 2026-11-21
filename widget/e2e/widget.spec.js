@@ -724,3 +724,33 @@ for (const position of ['top-left', 'top-right']) {
     });
   }
 }
+
+test.describe('accent colour', () => {
+  const bubbleColors = (page) =>
+    page.evaluate(() => {
+      const b = document.querySelector('aboutme-widget').shadowRoot.querySelector('.bubble');
+      const s = getComputedStyle(b);
+      return { bg: s.backgroundColor, fg: s.color };
+    });
+
+  for (const scheme of ['light', 'dark']) {
+    test(`a dark accent is used with white icons (${scheme})`, async ({ page }) => {
+      await page.emulateMedia({ colorScheme: scheme });
+      await setup(page, { data: { ...profile, accent: '#0f766e' }, attrs: `data-theme="${scheme}"` });
+      await expect(bubble(page)).toBeVisible();
+      expect(await bubbleColors(page)).toEqual({ bg: 'rgb(15, 118, 110)', fg: 'rgb(255, 255, 255)' });
+    });
+  }
+
+  test('a light accent gets dark icons', async ({ page }) => {
+    await setup(page, { data: { ...profile, accent: '#fc0' } });
+    await expect(bubble(page)).toBeVisible();
+    expect(await bubbleColors(page)).toEqual({ bg: 'rgb(255, 204, 0)', fg: 'rgb(17, 17, 17)' });
+  });
+
+  test('an invalid accent keeps the default blue', async ({ page }) => {
+    await setup(page, { data: { ...profile, accent: 'red;display:none' }, attrs: 'data-theme="light"' });
+    await expect(bubble(page)).toBeVisible();
+    expect((await bubbleColors(page)).bg).toBe('rgb(37, 99, 235)');
+  });
+});

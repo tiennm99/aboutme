@@ -48,6 +48,7 @@ Worker's tests check `profile.json` against it.
   "name": "Your name",
   "tagline": "Optional short line",
   "avatar": "https://... (optional, https only)",
+  "accent": "#0f766e (optional)",
   "events": "/e",
   "links": [
     { "id": "github", "label": "GitHub", "url": "https://github.com/you", "icon": "github" }
@@ -60,6 +61,10 @@ Worker's tests check `profile.json` against it.
   `facebook`, `x`, `youtube` and `telegram` show the brand's mark; LinkedIn's
   brand policy does not allow its logo here, so `linkedin` shows a generic icon.
 - Link URLs must be `https:`, `http:` or `mailto:`; anything else is dropped.
+- `accent` colours the bubble (behind the person icon when there is no avatar)
+  and the focus rings, in both themes. Only `#rgb` and `#rrggbb` are accepted;
+  the icon colour on the bubble is chosen for contrast. Leave it out for the
+  default blue.
 - Unknown fields are ignored, so adding an optional field needs no new version.
   A breaking change raises `schemaVersion` together with a new widget major
   (`@2`), and the Worker serves both until every site has moved.

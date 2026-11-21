@@ -1,7 +1,7 @@
 # Widget v1.2.0 to v1.4.0
 
 Status: in progress (2026-11-21). v1.2.0 reviewed, checked on the installed
-sites and released; v1.3.0 and v1.4.0 released. Only "Later" remains.
+sites and released; v1.3.0, v1.4.0 and v1.5.0 (accent) released. Done.
 
 Scope comes from an advisor review of v1.1.0. The review read the code and live
 CSS but did not run a browser, so its pixel numbers are estimates. Nothing here
@@ -78,9 +78,11 @@ three installed sites, so they keep the default corner. Bundle 18.9 KB, budget
 - Hide the link that points to the current site.
 - Skip counts when `navigator.globalPrivacyControl` is set.
 
-## Later
+## v1.5.0: accent colour
 
-- An optional `accent` colour in the profile (additive field).
+Done. Optional `accent` in the profile (`#rgb` or `#rrggbb` only), used for the
+bubble and focus rings in both themes, with the icon colour picked for
+contrast. Additive, still schema version 1. Size budget raised to 19.7 KB.
 
 ## Skipped
 

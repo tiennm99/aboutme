@@ -255,6 +255,27 @@ function text(value, max) {
   return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
 
+const HEX = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+
+/**
+ * Reads the profile's accent colour, accepting only `#rgb` or `#rrggbb` so the
+ * value can never inject other CSS, and picks the text colour that contrasts
+ * best with it (WCAG contrast against white and near-black).
+ * @param {unknown} value Candidate colour.
+ * @returns {{ color: string, fg: string } | null} The accent, or null when absent or invalid.
+ */
+export function parseAccent(value) {
+  if (typeof value !== 'string' || !HEX.test(value.trim())) return null;
+  let hex = value.trim().slice(1).toLowerCase();
+  if (hex.length === 3) hex = [...hex].map((c) => c + c).join('');
+  const [r, g, b] = [0, 2, 4].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  // Above about 0.19 relative luminance, #111111 contrasts better than white.
+  return { color: `#${hex}`, fg: 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.19 ? '#111111' : '#ffffff' };
+}
+
 /**
  * @typedef {object} ProfileLink
  * @property {string} id Stable id used in click counts.
@@ -270,6 +291,7 @@ function text(value, max) {
  * @property {string | null} avatar Avatar image URL.
  * @property {ProfileLink[]} links Links shown in the panel.
  * @property {string | null} events Absolute URL of the count endpoint.
+ * @property {{ color: string, fg: string } | null} accent Accent colour and its text colour.
  */
 
 /**
@@ -310,6 +332,7 @@ export function validateProfile(data, baseUrl) {
     avatar: safeUrl(data.avatar, ['https:']),
     links,
     events,
+    accent: parseAccent(data.accent),
   };
 }
 

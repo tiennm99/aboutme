@@ -10,6 +10,11 @@
     "name": { "type": "string", "minLength": 1, "maxLength": 60 },
     "tagline": { "type": "string", "maxLength": 120 },
     "avatar": { "type": "string", "format": "uri", "pattern": "^https://" },
+    "accent": {
+      "type": "string",
+      "pattern": "^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$",
+      "description": "Bubble and focus-ring colour in both themes, as #rgb or #rrggbb. Leave it out for the default blue."
+    },
     "events": {
       "type": "string",
       "description": "Count endpoint, absolute or relative to the profile URL. Leave it out to send no counts."
