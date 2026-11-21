@@ -1,7 +1,9 @@
 # @tiennm99/aboutme
 
-A floating bubble that shows links about a site's author. Drag it onto the target at
-the bottom of the screen, or press "Hide", and it stays hidden for a period you choose.
+A floating "about me" bubble for any website: one script tag, and your blog,
+GitHub, CV and socials fly out around it. Drag it onto the target at the bottom of
+the screen, or press "Hide", and it stays hidden for a period you choose. No
+framework, no cookies. [Live demo](https://tiennm99.github.io/aboutme/).
 
 ```html
 <script

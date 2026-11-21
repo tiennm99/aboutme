@@ -2,8 +2,9 @@
 
 For anyone who likes the idea and wants it on their site without learning any
 tools. You need only a GitHub account and a web browser: no Node.js, no
-terminal, no Cloudflare. GitHub Pages hosts both the bubble's script and your
-links, for free.
+terminal, no Cloudflare. GitHub Pages hosts your links for free, and the
+bubble's script comes either from the jsDelivr CDN or from your own Pages
+(step 5).
 
 What you get: the bubble with your own links, on any site where you can paste one
 line into the page's `<head>`. No visit counts; for those, see the
@@ -82,8 +83,33 @@ Fix the variable and run the workflow again.
 
 ## 5. Add the bubble to your site
 
-Paste this into the `<head>` of every page, or of the shared layout or template
-your site builder uses:
+Paste one of these into the `<head>` of every page, or of the shared layout or
+template your site builder uses. Both read your links from your own Pages; they
+differ only in where the bubble's script comes from.
+
+### Option A: script from the CDN (recommended)
+
+```html
+<script
+  src="https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1"
+  data-profile="https://<your-github-username>.github.io/aboutme/profile.json"
+  defer
+></script>
+```
+
+The script is the published npm package, served by [jsDelivr](https://www.jsdelivr.com/).
+
+- **Faster for returning visitors.** jsDelivr lets browsers keep the script for
+  7 days; GitHub Pages only for 10 minutes, after which the browser checks
+  again. A first visit is about as fast either way, since both are served from
+  CDNs near the visitor.
+- **Updates on its own.** `@1` follows every compatible release, so you get
+  fixes and new features without syncing your fork. A breaking change comes as
+  `@2` and never reaches `@1` sites.
+- **Can be pinned.** Swap `@1` for an exact version with an
+  [SRI hash](usage.md#script-tag-options) if a site must never change unreviewed.
+
+### Option B: script from your own Pages
 
 ```html
 <script
@@ -93,8 +119,20 @@ your site builder uses:
 ></script>
 ```
 
+Everything comes from your fork, with no third-party CDN.
+
+- **Full control.** The script is built from your fork, so changes you make to
+  the widget's code show up on your sites.
+- **Stays as it is.** It changes only when you sync your fork (see below).
+- **Fewer outside hosts.** Handy when a site's Content-Security-Policy should
+  list only your own addresses.
+
+Pick A unless you changed the widget or want nothing loaded from a CDN. You can
+switch at any time by changing the `src` line.
+
 Optional attributes such as `data-hide="7d"`, `data-position="bottom-left"` or
-`data-layout="list"` are listed in [usage.md](usage.md#script-tag-options).
+`data-layout="list"` work with both and are listed in
+[usage.md](usage.md#script-tag-options).
 
 ## Changing your links later
 
@@ -105,7 +143,8 @@ after the run turns green.
 
 ## Getting widget updates
 
-Your fork keeps the widget version it was built from. To take newer versions,
+With option A there is nothing to do. With option B, your fork keeps the widget
+version it was built from. To take newer versions,
 press **Sync fork** > **Update branch** on your fork's main page; the Pages
 workflow then rebuilds. If nothing starts, open **Actions** > **Pages** > **Run
 workflow**.
@@ -118,10 +157,18 @@ sync; your copy keeps working as it is.
 ## Limits
 
 - No visit counts.
-- No version pinning or [SRI](usage.md#script-tag-options) on the script.
+- With option B, no version pinning or [SRI](usage.md#script-tag-options) on the
+  script.
 - Several project sites on the same `github.io` address share the hide period;
   see [known issues](known-issues.md).
 
-When you want counts, a global CDN with versioned releases, or your own domain,
-move to the [standard setup](setup-standard.md). Copy your variable's value into
+When you want counts or your own domain, move to the [standard setup](setup-standard.md). Copy your variable's value into
 `worker/public/profile.json` there, and add `"events": "/e"`.
+
+## Ideas, problems, improvements
+
+If something is unclear, broken, or could be better, please
+[open an issue](https://github.com/tiennm99/aboutme/issues/new): a question, a bug,
+or an idea such as a new icon or language is all welcome. Pull requests are
+welcome too; [usage.md](usage.md#development) shows how to build and test. A
+change made here reaches everyone on `@1`, including you.

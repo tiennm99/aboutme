@@ -76,12 +76,16 @@ writeFileSync(
 </head>
 <body>
   <h1>aboutme</h1>
-  <p>The bubble on this page is the widget. To add it to your own site, put this in the site's &lt;head&gt;:</p>
-  <pre id="tag"></pre>
+  <p>The bubble on this page is the widget. To add it to your own site, put one of these in the site's &lt;head&gt;.</p>
+  <p>Script from the jsDelivr CDN (recommended):</p>
+  <pre id="cdn"></pre>
+  <p>Script from this site:</p>
+  <pre id="self"></pre>
   <script>
     const base = new URL('.', location.href).href;
-    document.getElementById('tag').textContent =
-      '<script src="' + base + 'aboutme.js" data-profile="' + base + 'profile.json" defer></' + 'script>';
+    const tag = (src) => '<script src="' + src + '" data-profile="' + base + 'profile.json" defer></' + 'script>';
+    document.getElementById('cdn').textContent = tag('https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1');
+    document.getElementById('self').textContent = tag(base + 'aboutme.js');
   </script>
 </body>
 </html>

@@ -1,7 +1,7 @@
 {
   "name": "@tiennm99/aboutme",
   "version": "1.7.0",
-  "description": "A draggable floating bubble that shows links about the site's author, loaded from a profile JSON.",
+  "description": "A draggable floating 'about me' bubble for any website: one script tag shows your blog, GitHub, CV and socials. No framework, no cookies, light and dark themes.",
   "type": "module",
   "license": "MIT",
   "author": "tiennm99",
@@ -10,13 +10,22 @@
     "url": "git+https://github.com/tiennm99/aboutme.git",
     "directory": "widget"
   },
-  "homepage": "https://github.com/tiennm99/aboutme#readme",
+  "homepage": "https://tiennm99.github.io/aboutme/",
   "keywords": [
     "about-me",
     "widget",
     "floating-button",
+    "floating-bubble",
+    "chat-bubble",
     "profile",
-    "links"
+    "links",
+    "link-in-bio",
+    "personal-website",
+    "portfolio",
+    "social-links",
+    "vanilla-js",
+    "no-cookies",
+    "dark-mode"
   ],
   "main": "dist/aboutme.js",
   "jsdelivr": "dist/aboutme.js",

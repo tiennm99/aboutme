@@ -1,8 +1,16 @@
 # aboutme
 
-A floating bubble for your websites. Click it to see links about you (homepage,
-blog, GitHub, ...). Drag it onto the target at the bottom of the screen, like an
-Android chat bubble, or press "Hide", and it stays hidden for a period you choose.
+Let visitors of every site you build find the rest of you. aboutme adds one
+small floating bubble to your pages; tap it and your blog, GitHub, CV, LinkedIn
+and email fly out around it. One line of HTML, one list of links for all your
+sites, no framework, no cookies.
+
+- **Feels native:** drag it like an Android chat bubble, drop it on the target
+  to hide it, or press "Hide" for a period you choose.
+- **Fits any page:** follows the page's light or dark theme, English and
+  Vietnamese, four layouts, keyboard and screen-reader friendly.
+- **Free to run:** GitHub Pages alone is enough; add a Cloudflare Worker for
+  anonymous counts of opens and clicks.
 
 Demo: [tiennm99.github.io/aboutme](https://tiennm99.github.io/aboutme/).
 
@@ -12,7 +20,7 @@ Demo: [tiennm99.github.io/aboutme](https://tiennm99.github.io/aboutme/).
 | --- | --- | --- |
 | For | Trying the idea with no tools | A dependable setup with counts |
 | You need | A GitHub account | Cloudflare account, Node.js |
-| Script from | Your GitHub Pages | jsDelivr CDN, versioned |
+| Script from | jsDelivr CDN, or your GitHub Pages | jsDelivr CDN |
 | Links from | Your GitHub Pages | Your Cloudflare Worker |
 | Anonymous counts | No | Yes |
 
@@ -28,13 +36,14 @@ Ideas beyond the standard setup: [docs/going-further.md](docs/going-further.md).
 
 ```html
 <script
-  src="https://<you>.github.io/aboutme/aboutme.js"
+  src="https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1"
   data-profile="https://<you>.github.io/aboutme/profile.json"
   defer
 ></script>
 ```
 
-Step by step: [docs/setup-simple.md](docs/setup-simple.md).
+Step by step, and how to serve the script from your own Pages instead:
+[docs/setup-simple.md](docs/setup-simple.md).
 
 ## More
 
@@ -45,6 +54,14 @@ Step by step: [docs/setup-simple.md](docs/setup-simple.md).
 Options, the profile format, counts and development: [docs/usage.md](docs/usage.md).
 Known issues: [docs/known-issues.md](docs/known-issues.md). Sites using the widget:
 [docs/installed-sites.md](docs/installed-sites.md).
+
+## Contributing
+
+Questions, bugs and ideas (a new icon, a new language, a layout) are welcome as
+[issues](https://github.com/tiennm99/aboutme/issues/new), and pull requests too:
+[docs/usage.md](docs/usage.md#development) shows how to build and test. Every
+improvement here reaches all sites on `@1`. If aboutme is on your site, a star
+helps others find it.
 
 ## License
 
