@@ -4,8 +4,8 @@ For anyone who likes the idea and wants it on their site without learning any
 tools. The quickest way needs nothing but the ability to paste one tag into your
 pages: no account, no Node.js, no Cloudflare.
 
-The [demo page](https://tiennm99.github.io/aboutme/) does steps 1 to 3 for you:
-edit your links there and press **Copy** on the tag you want.
+The [demo page](https://tiennm99.github.io/aboutme/) has the example profile and
+every script tag below ready to copy.
 
 What you get: the bubble with your own links. No visit counts; for those, see
 the [standard setup](setup-standard.md).

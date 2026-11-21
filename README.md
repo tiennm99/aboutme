@@ -16,19 +16,21 @@ Demo: [tiennm99.github.io/aboutme](https://tiennm99.github.io/aboutme/).
 
 ## Quick start
 
-Paste this into the `<head>` of your site, with your own links:
+Save your links as `profile.json` on your site (format below), then paste this
+into the `<head>` of your pages:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1" defer>
+<script src="https://cdn.jsdelivr.net/npm/@tiennm99/aboutme@1" data-profile="/profile.json" defer></script>
+```
+
+```json
 { "schemaVersion": 1, "name": "Your name", "links": [
   { "id": "blog", "label": "Blog", "url": "https://example.com/", "icon": "blog" },
   { "id": "github", "label": "GitHub", "url": "https://github.com/you", "icon": "github" }
 ] }
-</script>
 ```
 
-Or build the tag on the [demo page](https://tiennm99.github.io/aboutme/): edit
-your links and press **Copy**.
+The [demo page](https://tiennm99.github.io/aboutme/) has these ready to copy.
 
 ## Pick a setup
 
