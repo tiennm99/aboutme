@@ -16,14 +16,14 @@ const profile = {
   ],
 };
 
-async function setup(page, { hide = '1d', attrs = '', head = '', data = profile } = {}) {
+async function setup(page, { hide = '1d', attrs = '', head = '', data = profile, meta = 'width=device-width' } = {}) {
   const events = [];
   const origins = [];
   await page.route(`${SITE}/`, (route) =>
     route.fulfill({
       contentType: 'text/html',
       // no-referrer is the strictest policy for the Origin header the Worker relies on.
-      body: `<!doctype html><meta name="viewport" content="width=device-width"><meta name="referrer" content="no-referrer">${head}
+      body: `<!doctype html><meta name="viewport" content="${meta}"><meta name="referrer" content="no-referrer">${head}
         <h1>Host page</h1>
         <script src="${DATA}/aboutme.js" data-profile="${DATA}/profile.json" data-hide="${hide}" ${attrs} defer></script>`,
     }),
@@ -131,9 +131,95 @@ test('the keyboard opens and closes the panel', async ({ page }) => {
   await bubble(page).focus();
   await page.keyboard.press('Enter');
   await expect(page.getByRole('dialog')).toBeVisible();
+  // The bubble comes before the panel, so Tab moves into the panel and back.
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Close' })).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(bubble(page)).toBeFocused();
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toBeHidden();
   await expect(bubble(page)).toBeFocused();
+});
+
+test('the bubble is hidden when printing', async ({ page }) => {
+  await setup(page);
+  await expect(bubble(page)).toBeVisible();
+  await page.emulateMedia({ media: 'print' });
+  await expect(bubble(page)).toBeHidden();
+});
+
+for (const reducedMotion of ['reduce', 'no-preference']) {
+  test(`the panel animates its opening only without reduced motion (${reducedMotion})`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion });
+    await setup(page);
+    await bubble(page).click();
+    const animations = await page.getByRole('dialog').evaluate((panel) => panel.getAnimations().length);
+    expect(animations).toBe(reducedMotion === 'reduce' ? 0 : 1);
+  });
+}
+
+test('rotating keeps a bubble in the lower half there, and rotating back restores it', async ({ page, hasTouch }) => {
+  await page.setViewportSize({ width: 412, height: 915 });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await setup(page);
+  const start = await bubble(page).boundingBox();
+  // Rest the bubble at y = 440, its centre just below the middle.
+  await drag(page, hasTouch, { x: start.x + 20, y: start.y + 20 }, { x: start.x + 20, y: 460 }, 8);
+  await expect.poll(async () => Math.round((await bubble(page).boundingBox()).y)).toBe(440);
+  await page.setViewportSize({ width: 915, height: 412 });
+  await expect.poll(async () => (await bubble(page).boundingBox()).x).toBe(915 - 68);
+  const turned = await bubble(page).boundingBox();
+  expect(turned.y + turned.height / 2).toBeGreaterThan(412 / 2);
+  await page.setViewportSize({ width: 412, height: 915 });
+  await expect.poll(async () => Math.round((await bubble(page).boundingBox()).y)).toBe(440);
+});
+
+test.describe('with classic scrollbars', () => {
+  // Chromium hides scrollbars in automation by default, and launch options
+  // cannot change per test, so these tests launch their own browser.
+  let browser;
+  let page;
+  test.beforeEach(async ({ playwright, channel, isMobile }) => {
+    test.skip(isMobile, 'Mobile scrollbars overlay the page');
+    browser = await playwright.chromium.launch({ channel, ignoreDefaultArgs: ['--hide-scrollbars'] });
+    page = await browser.newPage({ viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' });
+  });
+  test.afterEach(async () => {
+    await browser?.close();
+    browser = undefined;
+  });
+  const head = '<style>::-webkit-scrollbar { width: 17px } ::-webkit-scrollbar-thumb { background: #888 }</style>';
+  const clientWidth = (page) => page.evaluate(() => document.documentElement.clientWidth);
+
+  // Bubble and panel stay at least 16px clear of the scrollbar, and lined up.
+  async function expectClearOfScrollbar(page) {
+    const width = await clientWidth(page);
+    expect(width).toBeLessThan(page.viewportSize().width);
+    const ball = await bubble(page).boundingBox();
+    expect(ball.x + ball.width).toBeLessThanOrEqual(width - 16);
+    await bubble(page).click();
+    const box = await page.getByRole('dialog').boundingBox();
+    expect(box.x + box.width).toBeLessThanOrEqual(width - 16 + 0.5);
+    expect(box.x + box.width).toBeCloseTo(ball.x + ball.width, 0);
+  }
+
+  test('on a long page the bubble and panel stay clear of the scrollbar', async () => {
+    await setup(page, { head: `${head}<style>html { overflow-y: scroll } body { height: 3000px }</style>` });
+    await expectClearOfScrollbar(page);
+  });
+
+  test('a scrollbar that appears after the widget loads moves the bubble clear of it', async () => {
+    await setup(page, { head });
+    await expect(bubble(page)).toBeVisible();
+    expect(await clientWidth(page)).toBe(page.viewportSize().width);
+    // Content grows later, as when a single-page app renders or images load.
+    await page.evaluate(() => (document.body.style.height = '3000px'));
+    await expect.poll(async () => {
+      const ball = await bubble(page).boundingBox();
+      return ball.x + ball.width;
+    }).toBe((await clientWidth(page)) - 16);
+    await expectClearOfScrollbar(page);
+  });
 });
 
 const crowded = {
@@ -192,6 +278,16 @@ for (const size of [{ width: 320, height: 568 }, { width: 568, height: 320 }, { 
     await expectPanelFits(page);
   });
 }
+
+test('long names clamp to two lines and long labels end in an ellipsis', async ({ page }) => {
+  await openCrowded(page, { width: 320, height: 568 });
+  const dialog = page.getByRole('dialog');
+  const name = await dialog.locator('.name').evaluate((node) => ({ height: node.clientHeight, line: parseFloat(getComputedStyle(node).lineHeight) }));
+  expect(name.height).toBeLessThanOrEqual(name.line * 2 + 0.5);
+  const label = await dialog.locator('a span').first().evaluate((node) => ({ scroll: node.scrollWidth, client: node.clientWidth, overflow: getComputedStyle(node).textOverflow }));
+  expect(label.scroll).toBeGreaterThan(label.client);
+  expect(label.overflow).toBe('ellipsis');
+});
 
 test('a crowded panel fits a short 640x280 viewport', async ({ page }) => {
   await openCrowded(page, { width: 640, height: 280 });
@@ -258,6 +354,8 @@ for (const [name, options, expected] of [
   ['a gradient body with light text is dark', { head: '<style>body { background: linear-gradient(#000, #333); color: #eee; min-height: 100vh }</style>' }, 'dark'],
   ['data-theme="light" wins on a dark page', { head: '<style>body { background: #111; color: #eee }</style>', attrs: 'data-theme="light"' }, 'light'],
   ['a plain page is light', {}, 'light'],
+  ['an lch dark body is dark', { head: '<style>body { background: lch(12 0 0); color: lch(92 0 0) }</style>' }, 'dark'],
+  ['a display-p3 dark body is dark', { head: '<style>body { background: color(display-p3 0.05 0.05 0.05); color: color(display-p3 0.9 0.9 0.9) }</style>' }, 'dark'],
 ]) {
   test(`theme: ${name}`, async ({ page }) => {
     await setup(page, options);
@@ -289,4 +387,75 @@ test('theme: follows a prefers-color-scheme change that the page animates', asyn
   await expect.poll(() => themeOf(page)).toBe('dark');
   await page.emulateMedia({ colorScheme: 'light' });
   await expect.poll(() => themeOf(page)).toBe('light');
+});
+
+test.describe('a page wider than the phone screen', () => {
+  test.skip(({ isMobile }) => !isMobile, 'desktop browsers ignore the viewport meta tag');
+  const wide = '<style>h1 { width: 700px }</style>';
+  // Boxes in page coordinates, and the visible area from the visual viewport.
+  const boxes = (page) =>
+    page.evaluate(() => {
+      const shadow = document.querySelector('aboutme-widget').shadowRoot;
+      const rect = (selector) => shadow.querySelector(selector).getBoundingClientRect().toJSON();
+      const { width, height, scale } = visualViewport;
+      return { ball: rect('.bubble'), panel: rect('.panel'), target: rect('.target'), view: { x: 0, y: 0, width, height }, scale };
+    });
+
+  // Starts a drag with the mouse, in the coordinates Playwright gives the bubble.
+  async function startDrag(page) {
+    const ball = await bubble(page).boundingBox();
+    const at = { x: ball.x + ball.width / 2, y: ball.y + ball.height / 2 };
+    await page.mouse.move(at.x, at.y);
+    await page.mouse.down();
+    await page.mouse.move(at.x - 30, at.y - 30, { steps: 4 });
+  }
+
+  test('when it loads zoomed out, the bubble, panel and dismiss target sit in the visible corner', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await setup(page, { head: wide });
+    await expect(bubble(page)).toBeVisible();
+    const { ball, view, scale } = await boxes(page);
+    expect(scale).toBeLessThan(1);
+    expect(contains(view, ball)).toBe(true);
+    expect(ball.x + ball.width).toBeGreaterThan(view.width - 20);
+    expect(ball.y + ball.height).toBeGreaterThan(view.height - 40);
+
+    await bubble(page).click();
+    await expect(page.getByRole('dialog')).toBeVisible();
+    expect(contains(view, (await boxes(page)).panel)).toBe(true);
+    await page.keyboard.press('Escape');
+
+    await startDrag(page);
+    const { target } = await boxes(page);
+    expect(contains(view, target)).toBe(true);
+    expect(target.y + target.height).toBeGreaterThan(view.height - 40);
+    await page.mouse.up();
+  });
+
+  test('at normal zoom the dismiss target is on screen, and zooming out moves the bubble to the corner', async ({ page, hasTouch }) => {
+    await setup(page, { head: wide, meta: 'width=device-width, initial-scale=1' });
+    await expect(bubble(page)).toBeVisible();
+    const first = await boxes(page);
+    expect(first.scale).toBe(1);
+    expect(first.ball.x + first.ball.width).toBe(page.viewportSize().width - 16);
+
+    await startDrag(page);
+    expect(contains(first.view, (await boxes(page)).target)).toBe(true);
+    await page.mouse.up();
+
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: 0.6 });
+    await expect.poll(async () => {
+      const { ball, view } = await boxes(page);
+      return contains(view, ball) && ball.x + ball.width > view.width - 20;
+    }).toBe(true);
+    await cdp.send('Emulation.setPageScaleFactor', { pageScaleFactor: 1 });
+    await expect.poll(async () => (await boxes(page)).ball.x).toBe(page.viewportSize().width - 68);
+
+    // Dropping on the target still dismisses.
+    const start = await bubble(page).boundingBox();
+    const viewport = page.viewportSize();
+    await drag(page, hasTouch, { x: start.x + 20, y: start.y + 20 }, { x: viewport.width / 2, y: viewport.height - 64 }, 12);
+    await expect(bubble(page)).toHaveCount(0);
+  });
 });

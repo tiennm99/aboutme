@@ -84,7 +84,7 @@ a span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-over
 .hide { flex: none; width: 100%; margin-top: 8px; padding: 6px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
 .hide:hover { color: var(--fg); }
 .target {
-  position: fixed; left: 50%; bottom: 32px; width: 64px; height: 64px; margin-left: -32px; z-index: 2147483000;
+  position: fixed; left: 0; top: 0; width: 64px; height: 64px; z-index: 2147483000;
   border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgb(0 0 0 / 55%);
   border: 2px solid rgb(255 255 255 / 70%); transition: transform .15s ease, background .15s ease; pointer-events: none;
 }
@@ -128,7 +128,16 @@ function el(tag, className, content) {
 function viewport() {
   // In quirks mode the body, not the root element, reports the viewport.
   const node = document.compatMode === 'BackCompat' ? document.body : document.documentElement;
-  return { w: node.clientWidth, h: node.clientHeight };
+  const size = { w: node.clientWidth, h: node.clientHeight };
+  // On a phone, a page wider than the screen can load zoomed out, or the
+  // visitor can zoom out; more of the page is then visible than the client
+  // size says. Zooming in is ignored, so the bubble never chases the visitor.
+  const visible = window.visualViewport;
+  if (visible && visible.scale < 1) {
+    size.w = Math.max(size.w, visible.width);
+    size.h = Math.max(size.h, visible.height);
+  }
+  return size;
 }
 
 /**
@@ -249,6 +258,7 @@ export function mount({ profile, position, theme, hide, track, onDismiss }) {
   let frame = 0;
   let timer = 0;
   let observer = null;
+  let sizer = null;
 
   /** Applies the fixed theme, or the one the page shows now. */
   function applyTheme() {
@@ -266,9 +276,13 @@ export function mount({ profile, position, theme, hide, track, onDismiss }) {
   let x = 0;
   let y = 0;
   let side = position;
-  // The bubble rests this far from the nearer of the top and bottom edges.
+  // The bubble rests this far from the nearer of the top and bottom edges, or
+  // at this share of the height it can move in when the screen gets shorter,
+  // so a bubble in the lower half stays there after a rotation.
   let fromBottom = true;
   let gap = MARGIN * 2;
+  let share = 1;
+  let last = viewport();
 
   /** Moves the bubble to the current coordinates. */
   function place() {
@@ -278,8 +292,10 @@ export function mount({ profile, position, theme, hide, track, onDismiss }) {
   /** Puts the bubble on its side at its resting distance, kept on screen. */
   function snap() {
     const { w, h } = viewport();
+    const offset = Math.min(gap, share * (h - SIZE));
     x = side === 'left' ? MARGIN : w - SIZE - MARGIN;
-    y = clamp(fromBottom ? h - SIZE - gap : gap, MARGIN, h - SIZE - MARGIN);
+    y = clamp(fromBottom ? h - SIZE - offset : offset, MARGIN, h - SIZE - MARGIN);
+    last = { w, h };
     place();
   }
 
@@ -290,6 +306,7 @@ export function mount({ profile, position, theme, hide, track, onDismiss }) {
     fromBottom = y + SIZE / 2 > h / 2;
     const top = clamp(y, MARGIN, h - SIZE - MARGIN);
     gap = fromBottom ? h - SIZE - top : top;
+    share = h > SIZE ? gap / (h - SIZE) : 1;
     snap();
   }
 
@@ -331,8 +348,15 @@ export function mount({ profile, position, theme, hide, track, onDismiss }) {
 
   /** Keeps the bubble and the open panel on screen after a resize. */
   function resize() {
+    if (drag?.moved) return;
     snap();
     if (!panel.hidden) placePanel();
+  }
+
+  /** Re-places after a change that may leave the viewport size as it was. */
+  function refit() {
+    const { w, h } = viewport();
+    if (w !== last.w || h !== last.h) resize();
   }
 
   /**
@@ -355,10 +379,12 @@ export function mount({ profile, position, theme, hide, track, onDismiss }) {
     track('dismiss');
     host.remove();
     window.removeEventListener('resize', resize);
+    window.visualViewport?.removeEventListener('resize', refit);
     document.removeEventListener('pointerdown', outside, true);
     document.removeEventListener('keydown', escape);
     media.removeEventListener('change', themeChanged);
     observer?.disconnect();
+    sizer?.disconnect();
     cancelAnimationFrame(frame);
     clearTimeout(timer);
     onDismiss();
@@ -408,6 +434,11 @@ export function mount({ profile, position, theme, hide, track, onDismiss }) {
     if (!drag.moved) {
       drag.moved = true;
       bubble.classList.add('dragging');
+      // Placed from the same viewport as the bubble: on a page wider than the
+      // screen, CSS edges of a fixed element can lie outside the visible area.
+      const { w, h } = viewport();
+      target.style.left = `${w / 2 - 32}px`;
+      target.style.top = `${h - 96}px`;
       target.hidden = false;
       setOpen(false);
     }
@@ -452,6 +483,14 @@ export function mount({ profile, position, theme, hide, track, onDismiss }) {
   });
   hideButton.addEventListener('click', dismiss);
   window.addEventListener('resize', resize);
+  // Zooming fires no window resize.
+  window.visualViewport?.addEventListener('resize', refit);
+  // A classic scrollbar that appears or goes away changes the viewport's
+  // client size without a resize event; the root element's box changes with it.
+  if (window.ResizeObserver) {
+    sizer = new ResizeObserver(refit);
+    sizer.observe(document.compatMode === 'BackCompat' ? document.body : document.documentElement);
+  }
   document.addEventListener('pointerdown', outside, true);
   document.addEventListener('keydown', escape);
 

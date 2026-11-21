@@ -1,7 +1,7 @@
 # Widget v1.2.0 to v1.4.0
 
-Status: deferred (2026-11-21). v1.2.0 is implemented on branch `v1.2.0-wip`;
-nothing after it has started.
+Status: in progress (2026-11-21). v1.2.0 reviewed, checked on the installed
+sites and released; v1.3.0 next.
 
 Scope comes from an advisor review of v1.1.0. The review read the code and live
 CSS but did not run a browser, so its pixel numbers are estimates. Nothing here
@@ -21,8 +21,9 @@ needs `schemaVersion` 2.
 
 ## v1.2.0: theme detection and overflow fixes
 
-Branch `v1.2.0-wip` (`8a555a6`): lint, 22 unit tests and 42 e2e tests pass.
-Steps 2 to 4 are still to do.
+Done. Review found 6 real issues (all fixed); the site check found widget bugs
+in round 1, fixed and rechecked clean in round 2. 58 e2e tests pass. The bundle
+is 14.0 KB minified, over the 13 KB target.
 
 - `data-theme="auto|light|dark"`, default `auto`. Auto detection order: opaque
   `body` then `html` background; a `dark`/`light` class or `data-theme`-style
@@ -33,7 +34,8 @@ Steps 2 to 4 are still to do.
   `html`/`body` attribute changes (plus one re-measure about 400 ms later).
 - Overflow fixes:
   1. The panel scrolls within a height cap.
-  2. The panel never overlaps the bubble.
+  2. The panel never overlaps the bubble, except below about 372 px wide with
+     no room above or below, where it opens over it.
   3. Resizing re-places an open panel.
   4. Resizing keeps the bubble's side.
   5. The bubble keeps its vertical position across rotation.

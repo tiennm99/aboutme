@@ -124,7 +124,22 @@ describe('brightnessOf', () => {
   it('reads color(srgb ...)', () => {
     expect(brightnessOf('color(srgb 1 1 1)')).toBeCloseTo(1);
     expect(brightnessOf('color(srgb 0.1 0.1 0.1 / 0.8)')).toBeCloseTo(0.1);
-    expect(brightnessOf('color(display-p3 1 1 1)')).toBeNull();
+    expect(brightnessOf('color(display-p3 1 1 1)')).toBeCloseTo(1);
+    expect(brightnessOf('color(display-p3 0.05 0.05 0.05)')).toBeCloseTo(0.05);
+    expect(brightnessOf('color(xyz 1 1 1)')).toBeNull();
+  });
+
+  it('gamma-encodes color(srgb-linear ...) before weighing it', () => {
+    // Linear 0.5 is about sRGB 0.735, so mid-grey linear light reads as light.
+    expect(brightnessOf('color(srgb-linear 0.5 0.5 0.5)')).toBeCloseTo(0.735, 2);
+    expect(brightnessOf('color(srgb-linear 0.001 0.001 0.001)')).toBeCloseTo(0.01292, 4);
+    expect(brightnessOf('color(srgb-linear 0 0 0 / 0.2)')).toBeNull();
+  });
+
+  it('reads the lightness of lch', () => {
+    expect(brightnessOf('lch(12 0 0)')).toBeCloseTo(0.12);
+    expect(brightnessOf('lch(92% 10 100)')).toBeCloseTo(0.92);
+    expect(brightnessOf('lch(20 10 100 / 0.3)')).toBeNull();
   });
 
   it('returns null for transparent, mostly transparent and unknown colours', () => {
@@ -144,6 +159,11 @@ describe('pickTheme', () => {
   it('uses an opaque body background first, then the html background', () => {
     expect(pickTheme({ ...page, backgrounds: ['rgb(17, 17, 17)', 'rgb(255, 255, 255)'], markers: ['light'] })).toBe('dark');
     expect(pickTheme({ ...page, backgrounds: ['rgba(0, 0, 0, 0)', 'rgb(250, 250, 250)'], text: 'rgb(255, 255, 255)' })).toBe('light');
+  });
+
+  it('reads lch and display-p3 backgrounds as opaque colours', () => {
+    expect(pickTheme({ ...page, backgrounds: ['lch(12 0 0)', 'rgba(0, 0, 0, 0)'], text: 'lch(92 0 0)' })).toBe('dark');
+    expect(pickTheme({ ...page, backgrounds: ['color(display-p3 0.05 0.05 0.05)', 'rgba(0, 0, 0, 0)'], prefersDark: false })).toBe('dark');
   });
 
   it('then an explicit marker, never reading a missing one as light', () => {

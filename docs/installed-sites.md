@@ -11,4 +11,4 @@ editing the sites. A site pinned to an exact version says so in its row.
 | --- | --- | --- | --- | --- |
 | `tiennm99/penny-pincher-provider` | https://tiennm99.github.io/penny-pincher-provider/ | `_includes/head.html` (Jekyll) | defaults | Live |
 | `tiennm99dev/usefulhacks` | https://tiennm99dev.github.io/usefulhacks/ | `layouts/_partials/custom/head-end.html` (Hugo) | defaults | Live |
-| `tiennm99/awesome-ai-dev-tools` | https://awesome-ai-dev-tools.pages.dev/ | `site/index.html` | defaults | In the source; not on the live page yet (its deploy has not run since the tag was added) |
+| `tiennm99/awesome-ai-dev-tools` | https://awesome-ai-dev-tools.pages.dev/ | `site/index.html` | defaults | Live |

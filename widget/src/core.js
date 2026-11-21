@@ -150,7 +150,7 @@ export function validateProfile(data, baseUrl) {
   };
 }
 
-const COLOR = /^(rgba?|oklch|oklab|lab|color)\((.*)\)$/i;
+const COLOR = /^(rgba?|oklch|oklab|lab|lch|color)\((.*)\)$/i;
 
 /**
  * Reads one number of a CSS colour function, where `100%` stands for `scale`.
@@ -166,7 +166,8 @@ function channel(token, scale) {
 /**
  * Measures how light a computed CSS colour looks.
  * Handles `rgb()`/`rgba()` (comma or space syntax), `oklch()`, `oklab()`,
- * `lab()` (their lightness) and `color(srgb ...)`.
+ * `lab()`, `lch()` (their lightness) and `color()` in `srgb`, `srgb-linear`
+ * and `display-p3` (its channels read as if they were sRGB).
  * @param {string} cssColor Colour as `getComputedStyle` returns it.
  * @returns {number | null} Brightness from 0 (black) to 1 (white); null when the
  *   colour is unknown or mostly transparent (alpha below 0.5).
@@ -178,8 +179,14 @@ export function brightnessOf(cssColor) {
   const args = match[2].split(/[\s,/]+/).filter(Boolean);
   let value;
   if (fn === 'color') {
-    if (args.shift()?.toLowerCase() !== 'srgb') return null;
-    const [r, g, b] = args.map((token) => channel(token, 1));
+    const space = args.shift()?.toLowerCase();
+    if (space !== 'srgb' && space !== 'srgb-linear' && space !== 'display-p3') return null;
+    // Linear channels are gamma-encoded first, so the weights apply as for sRGB.
+    const encode = (c) => {
+      if (space !== 'srgb-linear') return c;
+      return c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055;
+    };
+    const [r, g, b] = args.slice(0, 3).map((token) => encode(channel(token, 1)));
     value = 0.299 * r + 0.587 * g + 0.114 * b;
   } else if (fn.startsWith('rgb')) {
     const [r, g, b] = args.map((token) => channel(token, 255));

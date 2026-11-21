@@ -9,6 +9,10 @@
 | `data-position` | `right` | Starting side: `left` or `right` |
 | `data-theme` | `auto` | Colours: `auto` matches the page (its background, a `dark`/`light` class or `data-theme`-style attribute on `<html>` or `<body>`, its text colour, then the system setting) and follows it when it changes; `light` or `dark` fixes them |
 
+Auto mode reads only `<html>` and `<body>`. A site that paints its background
+and text on a wrapper element, or switches theme by swapping a stylesheet,
+should set `data-theme` (or a `dark`/`light` class on `<html>`).
+
 Load it with `defer` so it never blocks the page. Major tag `@1` follows every 1.x
 release. To pin an exact file and check its hash with
 [SRI](https://developer.mozilla.org/en-US/docs/Web/Security/Subresource_Integrity),
