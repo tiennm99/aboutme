@@ -1,9 +1,10 @@
 // Fails when the minified bundle grows past its budget, so size changes are deliberate.
 import { statSync } from 'node:fs';
 
-// About 250 bytes above the v1.5.0 build (19,449 bytes). Raised by 500 bytes
-// from 19,200 for the profile accent colour (hex parsing and contrast choice).
-const BUDGET = 19_700;
+// About 250 bytes above the v1.6.0 build (22,390 bytes). Raised by 2,950 bytes
+// from 19,700 for the orbit layout (its CSS, ring placement, label chips and
+// arrow keys); gzipped, the bundle grew from 8.3 KB to about 9.3 KB.
+const BUDGET = 22_650;
 const file = new URL('../dist/aboutme.js', import.meta.url);
 const size = statSync(file).size;
 

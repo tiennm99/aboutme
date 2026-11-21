@@ -13,6 +13,10 @@
 - **On very small screens** (narrower than about 372 px with no room above or
   below the bubble, such as heavy zoom) the panel opens over the bubble; it
   still scrolls and closes normally.
+- **The orbit layout crowds on short or very narrow windows.** With many links,
+  on a window under about 300 px tall (a short desktop window, a phone in split
+  screen) or under about 260 px wide, outer icons can touch or overlap. Common
+  phone and desktop sizes, portrait and landscape, are clear.
 - **Shared hosts share state.** Sites on one origin (project pages under one
   `github.io` host) share the hide period and the remembered position, and a
   link to that host's root is hidden on all of them.

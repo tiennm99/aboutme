@@ -754,3 +754,179 @@ test.describe('accent colour', () => {
     expect((await bubbleColors(page)).bg).toBe('rgb(37, 99, 235)');
   });
 });
+
+test.describe('orbit layout', () => {
+  const items = (page) => page.locator('aboutme-widget').locator('a, .hide');
+
+  async function openOrbit(page, size, attrs = '', data = branded) {
+    await page.setViewportSize(size);
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await setup(page, { data, attrs: `data-layout="orbit" ${attrs}` });
+    await crowdedBubble(page).click();
+    await expect(items(page).first()).toBeVisible();
+  }
+
+  // Every item is a round 44 px target inside the viewport, with a clear gap to
+  // the bubble and to every other item. They are circles, so distances between
+  // centres are checked rather than bounding boxes, which overlap at the corners.
+  async function expectOrbitFits(page, count) {
+    const { width, height } = page.viewportSize();
+    const centre = (box) => ({ x: box.x + box.width / 2, y: box.y + box.height / 2 });
+    const apart = (a, b) => Math.hypot(centre(a).x - centre(b).x, centre(a).y - centre(b).y);
+    const ball = await crowdedBubble(page).boundingBox();
+    const boxes = await items(page).evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()));
+    expect(boxes).toHaveLength(count);
+    for (const [i, box] of boxes.entries()) {
+      expect(box.width).toBe(44);
+      expect(contains({ x: 0, y: 0, width, height }, box)).toBe(true);
+      expect(apart(box, ball)).toBeGreaterThanOrEqual(22 + 26 + 4);
+      for (const other of boxes.slice(i + 1)) expect(apart(box, other)).toBeGreaterThanOrEqual(44 + 4);
+    }
+  }
+
+  for (const size of [{ width: 1280, height: 800 }, { width: 412, height: 915 }, { width: 320, height: 568 }, { width: 640, height: 360 }]) {
+    for (const position of ['bottom-right', 'top-left']) {
+      test(`12 links and Hide fit around a ${position} bubble at ${size.width}x${size.height}`, async ({ page }) => {
+        await openOrbit(page, size, `data-position="${position}"`);
+        await expectOrbitFits(page, 13);
+      });
+    }
+  }
+
+  test('a bubble dragged to the middle of a side opens the orbit on both sides of it', async ({ page, hasTouch }) => {
+    await page.setViewportSize({ width: 412, height: 915 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await setup(page, { data: branded, attrs: 'data-layout="orbit"' });
+    const start = await crowdedBubble(page).boundingBox();
+    await drag(page, hasTouch, { x: start.x + 20, y: start.y + 20 }, { x: 380, y: 440 }, 8);
+    if (hasTouch) await crowdedBubble(page).tap();
+    else await crowdedBubble(page).click();
+    await expectOrbitFits(page, 13);
+    const ball = await crowdedBubble(page).boundingBox();
+    const ys = await items(page).evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().y));
+    expect(ys.some((y) => y < ball.y)).toBe(true);
+    expect(ys.some((y) => y > ball.y + ball.height)).toBe(true);
+  });
+
+  test('the panel header is gone and labels stay as accessible names', async ({ page }) => {
+    await openOrbit(page, { width: 412, height: 915 });
+    await expect(page.getByText('N'.repeat(5), { exact: false })).toBeHidden();
+    await expect(page.getByRole('button', { name: 'Close' })).toBeHidden();
+    await expect(page.getByRole('link', { name: 'Link number 0 with a long label here' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^Hide for/ })).toBeVisible();
+  });
+
+  test('focus shows the label chip toward the middle of the screen; arrows step and wrap', async ({ page }) => {
+    await openOrbit(page, { width: 412, height: 915 });
+    await page.keyboard.press('Tab');
+    const first = page.getByRole('link', { name: 'Link number 0 with a long label here' });
+    await expect(first).toBeFocused();
+    const chip = first.locator('span');
+    await expect(chip).toHaveCSS('opacity', '1');
+    const chipBox = await chip.boundingBox();
+    const itemBox = await first.boundingBox();
+    expect(chipBox.x + chipBox.width).toBeLessThanOrEqual(itemBox.x);
+    expect(chipBox.x).toBeGreaterThanOrEqual(0);
+    await expect(page.getByRole('link', { name: 'Link number 1 with a long label here' }).locator('span')).toHaveCSS('opacity', '0');
+
+    await page.keyboard.press('ArrowDown');
+    await expect(page.getByRole('link', { name: 'Link number 1 with a long label here' })).toBeFocused();
+    await page.keyboard.press('ArrowUp');
+    await page.keyboard.press('ArrowUp');
+    await expect(page.getByRole('button', { name: /^Hide for/ })).toBeFocused();
+    await page.keyboard.press('Escape');
+    await expect(crowdedBubble(page)).toBeFocused();
+    await expect(first).toBeHidden();
+  });
+
+  test('a left-side bubble puts the chip on the right', async ({ page }) => {
+    await openOrbit(page, { width: 412, height: 915 }, 'data-position="bottom-left"');
+    await page.keyboard.press('Tab');
+    const first = page.getByRole('link', { name: 'Link number 0 with a long label here' });
+    const chipBox = await first.locator('span').boundingBox();
+    const itemBox = await first.boundingBox();
+    expect(chipBox.x).toBeGreaterThanOrEqual(itemBox.x + itemBox.width);
+  });
+
+  test('clicking a link counts it, Hide dismisses, and an outside click closes', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const { events } = await setup(page, { attrs: 'data-layout="orbit"' });
+    await bubble(page).click();
+    const popup = page.waitForEvent('popup');
+    await page.getByRole('link', { name: 'GitHub' }).click();
+    await (await popup).close();
+    await page.getByRole('heading', { name: 'Host page' }).click();
+    await expect(page.getByRole('link', { name: 'GitHub' })).toBeHidden();
+    await bubble(page).click();
+    await page.getByRole('button', { name: 'Hide for 1 day' }).click();
+    await expect(bubble(page)).toHaveCount(0);
+    await expect.poll(() => events).toEqual([{ event: 'open' }, { event: 'click', target: 'github' }, { event: 'open' }, { event: 'dismiss' }]);
+  });
+
+  test('items fly out from the bubble unless reduced motion is on', async ({ page }) => {
+    await setup(page, { attrs: 'data-layout="orbit"' });
+    await bubble(page).click();
+    const link = page.getByRole('link', { name: 'GitHub' });
+    expect(await link.evaluate((node) => getComputedStyle(node).animationName)).toBe('fly');
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    expect(await link.evaluate((node) => getComputedStyle(node).animationName)).toBe('none');
+  });
+
+  test('resizing while open keeps every item on screen', async ({ page }) => {
+    await openOrbit(page, { width: 1280, height: 800 });
+    await page.setViewportSize({ width: 320, height: 568 });
+    await expect.poll(async () => (await crowdedBubble(page).boundingBox()).x).toBeLessThan(320);
+    await expectOrbitFits(page, 13);
+  });
+
+  // Every chip fits on screen and shows its text in full when it is short.
+  async function expectChipsFit(page) {
+    const { width } = page.viewportSize();
+    const count = await items(page).count();
+    for (let i = 0; i < count; i++) {
+      await items(page).nth(i).focus();
+      const chip = await items(page).nth(i).locator('span').evaluate((node) => {
+        const box = node.getBoundingClientRect();
+        const style = getComputedStyle(node);
+        return { left: box.left, right: box.right, opacity: style.opacity, font: style.fontSize };
+      });
+      expect(chip).toMatchObject({ opacity: '1', font: '12px' });
+      expect(chip.left).toBeGreaterThanOrEqual(0);
+      expect(chip.right).toBeLessThanOrEqual(width);
+    }
+  }
+
+  for (const position of ['bottom-right', 'top-left']) {
+    test(`every chip stays on a 320x568 screen from a ${position} bubble`, async ({ page }) => {
+      await openOrbit(page, { width: 320, height: 568 }, `data-position="${position}"`);
+      await page.keyboard.press('Tab');
+      await expectChipsFit(page);
+    });
+  }
+
+  test('a short label shows in full and Hide has a tooltip', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await setup(page, { attrs: 'data-layout="orbit"' });
+    await bubble(page).click();
+    await page.keyboard.press('Tab');
+    const chip = page.getByRole('link', { name: 'Homepage' }).locator('span');
+    const fit = await chip.evaluate((node) => node.scrollWidth <= node.clientWidth);
+    expect(fit).toBe(true);
+    await expect(page.getByRole('button', { name: /^Hide for/ })).toHaveAttribute('title', 'Hide for 1 day');
+  });
+
+  test('a window too short for any arc still opens without hanging', async ({ page }) => {
+    await openOrbit(page, { width: 412, height: 915 });
+    await page.setViewportSize({ width: 800, height: 70 });
+    expect(await page.evaluate(() => 1)).toBe(1);
+    await expect(items(page)).toHaveCount(13);
+  });
+
+  test('modifier arrows are left to the browser', async ({ page }) => {
+    await openOrbit(page, { width: 412, height: 915 });
+    await page.keyboard.press('Tab');
+    const first = page.getByRole('link', { name: 'Link number 0 with a long label here' });
+    await page.keyboard.press('Alt+ArrowDown');
+    await expect(first).toBeFocused();
+  });
+});

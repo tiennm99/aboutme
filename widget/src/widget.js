@@ -17,11 +17,18 @@ const MIN_ROWS = 2;
 const BESIDE_WIDTH = MARGIN * 2 + SIZE + GAP + PANEL_WIDTH;
 const DRAG_THRESHOLD = 6;
 const TARGET_RADIUS = 72;
+// Orbit layout: round items this wide, at least this far apart along an arc,
+// on rings this far apart, the first one just clear of the bubble.
+const ITEM = 44;
+const STEP = 54;
+const RING = 58;
+const FIRST = SIZE / 2 + GAP + ITEM / 2 + 6;
 const THEME_ATTRIBUTES = ['data-theme', 'data-bs-theme', 'data-mode', 'data-color-mode', 'data-color-scheme'];
 
 const ICON_PATHS = {
   person: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-7 8-7s8 3 8 7"/>',
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
+  hide: '<path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/><path d="M3 3l18 18"/>',
   home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   blog: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>',
   linkedin: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/>',
@@ -101,6 +108,27 @@ a span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-over
 .root[data-l="icons"] a span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .hide { flex: none; width: 100%; margin-top: 8px; padding: 6px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
 .hide:hover { color: var(--fg); }
+/* Orbit layout: no panel box, only round items placed around the bubble's centre. */
+.root[data-l="orbit"] .panel:not([hidden]) { width: 0; height: 0; padding: 0; border: 0; background: none; box-shadow: none; overflow: visible; animation: none; display: block; }
+.root[data-l="orbit"] .head { display: none; }
+.root[data-l="orbit"] ul { display: block; overflow: visible; }
+.root[data-l="orbit"] a, .root[data-l="orbit"] .hide {
+  position: absolute; left: var(--x); top: var(--y); width: ${ITEM}px; height: ${ITEM}px; min-height: 0; margin: -${ITEM / 2}px 0 0 -${ITEM / 2}px;
+  padding: 0; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 50%;
+  background: var(--bg); color: var(--fg); box-shadow: 0 4px 12px rgb(0 0 0 / 20%);
+  animation: fly .18s ease-out backwards; animation-delay: calc(var(--i) * 15ms);
+}
+.root[data-l="orbit"] a:hover, .root[data-l="orbit"] .hide:hover { background: var(--hover); }
+.root[data-l="orbit"] :focus-visible { outline-offset: 2px; z-index: 1; }
+@keyframes fly { from { left: 0; top: 0; opacity: 0; transform: scale(.4); } }
+/* The label shows as a chip on the item's roomier side while the item has focus. */
+.root[data-l="orbit"] a span, .root[data-l="orbit"] .hide span {
+  position: absolute; top: 50%; right: calc(100% + 6px); flex: none; width: auto; max-width: calc(50vw - 40px); transform: translateY(-50%);
+  padding: 2px 8px; border-radius: 6px; background: var(--fg); color: var(--bg); font-size: 12px; line-height: 1.4; text-align: left;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; opacity: 0; pointer-events: none;
+}
+.root[data-l="orbit"] [data-c] span { right: auto; left: calc(100% + 6px); }
+.root[data-l="orbit"] :focus-visible > span { opacity: 1; }
 .target {
   position: fixed; left: 0; top: 0; width: 64px; height: 64px; z-index: 2147483000;
   border-radius: 50%; display: grid; place-items: center; color: #fff; background: rgb(0 0 0 / 55%);
@@ -108,7 +136,7 @@ a span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-over
 }
 .target[hidden] { display: none; }
 .target.active { transform: scale(1.25); background: var(--danger); }
-@media (prefers-reduced-motion: reduce) { .bubble, .target { transition: none; } .panel { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .bubble, .target { transition: none; } .panel, .root[data-l] a, .root[data-l] .hide { animation: none; } }
 @media print { .root { display: none; } }
 `;
 
@@ -198,7 +226,7 @@ function pageTheme(media) {
  * @param {import('./core.js').Placement} options.placement Where the bubble starts.
  * @param {import('./core.js').Lang} options.lang UI language.
  * @param {'auto' | 'light' | 'dark'} options.theme Colour theme; `auto` follows the page.
- * @param {import('./core.js').Layout} options.layout How links are shown: rows, captioned tiles or icon tiles.
+ * @param {import('./core.js').Layout} options.layout How links are shown: rows, captioned tiles, icon tiles or an orbit.
  * @param {string} options.hide Hide period as written in the script tag.
  * @param {(event: string, target?: string) => void} options.track Sends an anonymous count.
  * @param {() => void} options.onDismiss Called once when the visitor dismisses the widget.
@@ -211,7 +239,8 @@ export function mount({ profile, placement, lang, theme, layout, hide, track, on
   const host = document.createElement('aboutme-widget');
   const shadow = host.attachShadow({ mode: 'open' });
   const root = el('div', 'root');
-  // The list look keeps the base styles; grid and icons are styled through this attribute.
+  const orbit = layout === 'orbit';
+  // The list look keeps the base styles; the others are styled through this attribute.
   if (layout !== 'list') root.dataset.l = layout;
   // Inline custom properties win over both theme rules, so one accent serves light and dark.
   if (profile.accent) {
@@ -273,8 +302,14 @@ export function mount({ profile, placement, lang, theme, layout, hide, track, on
     list.append(item);
   }
 
-  const hideButton = el('button', 'hide', fill(strings.hide, 'period', describeDuration(hide, lang)));
+  const hideText = fill(strings.hide, 'period', describeDuration(hide, lang));
+  const hideButton = el('button', 'hide', orbit ? '' : hideText);
   hideButton.type = 'button';
+  // In the orbit, Hide is one more round item, so keyboard visitors can still dismiss.
+  if (orbit) {
+    hideButton.title = hideText;
+    hideButton.append(icon('hide'), el('span', '', hideText));
+  }
   panel.append(head, list, hideButton);
 
   const target = el('div', 'target');
@@ -346,6 +381,10 @@ export function mount({ profile, placement, lang, theme, layout, hide, track, on
    * first link rows, it goes beside the bubble, or on a narrow screen over it.
    */
   function placePanel() {
+    if (orbit) {
+      placeOrbit();
+      return;
+    }
     const { w, h } = viewport();
     const above = y - GAP - MARGIN;
     const below = h - y - SIZE - GAP - MARGIN;
@@ -374,6 +413,40 @@ export function mount({ profile, placement, lang, theme, layout, hide, track, on
     }
     panel.style.left = `${left}px`;
     panel.style.top = `${top}px`;
+  }
+
+  /**
+   * Places the orbit's items on arcs around the bubble, facing the middle of the
+   * screen: the inner ring fills first, each ring spanning the angles that stay
+   * on screen vertically; items are then kept on screen horizontally. On a
+   * screen too short for any arc, each ring takes one item, so the loop ends.
+   */
+  function placeOrbit() {
+    const { w, h } = viewport();
+    const cx = x + SIZE / 2;
+    const cy = y + SIZE / 2;
+    const dir = side === 'left' ? 1 : -1;
+    const edge = MARGIN + ITEM / 2;
+    const items = [...panel.querySelectorAll('a, .hide')];
+    panel.style.left = `${cx}px`;
+    panel.style.top = `${cy}px`;
+    for (let r = FIRST, i = 0; i < items.length; r += RING) {
+      const from = Math.asin(clamp((edge - cy) / r, -1, 1));
+      const to = Math.max(from, Math.asin(clamp((h - edge - cy) / r, -1, 1)));
+      const count = Math.min(items.length - i, Math.floor(((to - from) * r) / STEP) + 1);
+      // A ring that is not full keeps its items close together, centred on the arc.
+      const step = count > 1 ? Math.min((to - from) / (count - 1), (STEP * 1.2) / r) : 0;
+      const start = (from + to) / 2 - (step * (count - 1)) / 2;
+      for (let j = 0; j < count; j++, i++) {
+        const angle = start + j * step;
+        const left = clamp(cx + dir * r * Math.cos(angle), edge, w - edge);
+        items[i].style.setProperty('--x', `${left - cx}px`);
+        // The chip opens toward the wider part of the screen beside the item.
+        items[i].toggleAttribute('data-c', left < w / 2);
+        items[i].style.setProperty('--y', `${r * Math.sin(angle)}px`);
+        items[i].style.setProperty('--i', String(i));
+      }
+    }
   }
 
   /** Keeps the bubble and the open panel on screen after a resize. */
@@ -512,6 +585,14 @@ export function mount({ profile, placement, lang, theme, layout, hide, track, on
     bubble.focus();
   });
   hideButton.addEventListener('click', dismiss);
+  // In the orbit, the arrow keys also step through the items, wrapping around.
+  panel.addEventListener('keydown', (event) => {
+    const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[event.key];
+    if (!orbit || !step || event.altKey || event.ctrlKey || event.metaKey) return;
+    const items = [...panel.querySelectorAll('a, .hide')];
+    items[(items.indexOf(shadow.activeElement) + step + items.length) % items.length].focus();
+    event.preventDefault();
+  });
   window.addEventListener('resize', resize);
   // Zooming fires no window resize.
   window.visualViewport?.addEventListener('resize', refit);

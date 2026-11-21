@@ -1,6 +1,6 @@
 {
   "name": "@tiennm99/aboutme",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "description": "A draggable floating bubble that shows links about the site's author, loaded from a profile JSON.",
   "type": "module",
   "license": "MIT",

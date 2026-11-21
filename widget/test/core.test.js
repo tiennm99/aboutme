@@ -45,8 +45,8 @@ describe('parseDuration', () => {
 });
 
 describe('parseLayout', () => {
-  it('accepts list, grid and icons', () => {
-    for (const value of ['list', 'grid', 'icons']) expect(parseLayout(value)).toBe(value);
+  it('accepts list, grid, icons and orbit', () => {
+    for (const value of ['list', 'grid', 'icons', 'orbit']) expect(parseLayout(value)).toBe(value);
   });
 
   it('falls back to list for missing or unknown values', () => {

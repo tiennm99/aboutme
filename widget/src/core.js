@@ -9,7 +9,7 @@ export const STORAGE_KEY = 'aboutme:hiddenUntil';
 export const DEFAULT_HIDE = '7d';
 export const ICONS = ['home', 'blog', 'github', 'facebook', 'linkedin', 'x', 'youtube', 'email', 'telegram', 'cv', 'link'];
 
-export const LAYOUTS = ['list', 'grid', 'icons'];
+export const LAYOUTS = ['list', 'grid', 'icons', 'orbit'];
 export const POSITION_KEY = 'aboutme:pos';
 export const DEFAULT_OFFSET = 32;
 
@@ -188,7 +188,7 @@ export function visibleLinks(links, pageUrl) {
 }
 
 /**
- * @typedef {'list' | 'grid' | 'icons'} Layout
+ * @typedef {'list' | 'grid' | 'icons' | 'orbit'} Layout
  */
 
 /**

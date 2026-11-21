@@ -1,7 +1,7 @@
 # Widget v1.2.0 to v1.4.0
 
-Status: in progress (2026-11-21). v1.2.0 reviewed, checked on the installed
-sites and released; v1.3.0, v1.4.0 and v1.5.0 (accent) released. Done.
+Status: done (2026-11-21). v1.2.0 reviewed, checked on the installed
+sites and released; v1.3.0, v1.4.0, v1.5.0 (accent) and v1.6.0 (orbit) released.
 
 Scope comes from an advisor review of v1.1.0. The review read the code and live
 CSS but did not run a browser, so its pixel numbers are estimates. Nothing here
@@ -83,6 +83,18 @@ three installed sites, so they keep the default corner. Bundle 18.9 KB, budget
 Done. Optional `accent` in the profile (`#rgb` or `#rrggbb` only), used for the
 bubble and focus rings in both themes, with the icon colour picked for
 contrast. Additive, still schema version 1. Size budget raised to 19.7 KB.
+
+## v1.6.0: orbit layout
+
+`data-layout="orbit"`, opt-in. Round link icons fly out from the bubble onto
+arcs facing the middle of the screen, the inner ring filling first, with no
+panel, name or tagline. Hide is the last icon, so keyboard visitors can still
+dismiss. The label shows as a chip beside an icon only on keyboard focus; the
+arrow keys step through the icons and wrap. No fallback to another layout.
+Review found a hang on windows under 76 px tall, link chips clipped by the
+grid rules, chips running off phone screens, an unlabelled Hide for pointer
+users, and modifier arrows swallowed; all fixed with tests. Crowding on short
+windows is a known issue. Size budget raised to 22.65 KB (about 9.3 KB gzipped).
 
 ## Skipped
 
