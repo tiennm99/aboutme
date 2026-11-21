@@ -1,7 +1,7 @@
 # Widget v1.2.0 to v1.4.0
 
 Status: done (2026-11-21). v1.2.0 reviewed, checked on the installed
-sites and released; v1.3.0, v1.4.0, v1.5.0 (accent) and v1.6.0 (orbit) released.
+sites and released; v1.3.0, v1.4.0, v1.5.0 (accent), v1.6.0 (orbit) and v1.7.0 (orbit by default) released.
 
 Scope comes from an advisor review of v1.1.0. The review read the code and live
 CSS but did not run a browser, so its pixel numbers are estimates. Nothing here
@@ -95,6 +95,13 @@ Review found a hang on windows under 76 px tall, link chips clipped by the
 grid rules, chips running off phone screens, an unlabelled Hide for pointer
 users, and modifier arrows swallowed; all fixed with tests. Crowding on short
 windows is a known issue. Size budget raised to 22.65 KB (about 9.3 KB gzipped).
+
+## v1.7.0: orbit by default
+
+Orbit becomes the layout when the tag names none or an unknown one, at the
+user's choice, so every site on `@1` switches without editing its tag. Sites
+that want the panel set `data-layout="list"`. Released as a minor version so
+`@1` sites get it.
 
 ## Skipped
 

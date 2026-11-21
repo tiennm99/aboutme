@@ -10,8 +10,9 @@
  * - `data-offset`: starting distance in px from the top or bottom edge (default `32`).
  * - `data-lang`: UI language, `en` or `vi` (default: the page's `<html lang>`, else `en`).
  * - `data-theme`: `auto` (default, follows the page), `light` or `dark`.
- * - `data-layout`: `list` (default), `grid` (captioned tiles), `icons` (tiles without visible
- *   captions) or `orbit` (round icons that fly out around the bubble, with no panel).
+ * - `data-layout`: `orbit` (default; round icons that fly out around the bubble, with no
+ *   panel), `list` (a panel with one row per link), `grid` (captioned tiles) or `icons`
+ *   (tiles without visible captions).
  */
 
 import {

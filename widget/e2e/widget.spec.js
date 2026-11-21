@@ -16,6 +16,9 @@ const profile = {
   ],
 };
 
+// Orbit is the default; panel tests ask for the list unless they name a layout.
+const layoutAttr = (attrs) => (attrs.includes('data-layout') ? attrs : `data-layout="list" ${attrs}`);
+
 async function setup(page, { hide = '1d', attrs = '', head = '', data = profile, meta = 'width=device-width', lang = '' } = {}) {
   const events = [];
   const origins = [];
@@ -25,7 +28,7 @@ async function setup(page, { hide = '1d', attrs = '', head = '', data = profile,
       // no-referrer is the strictest policy for the Origin header the Worker relies on.
       body: `<!doctype html>${lang ? `<html lang="${lang}">` : ''}<meta name="viewport" content="${meta}"><meta name="referrer" content="no-referrer">${head}
         <h1>Host page</h1>
-        <script src="${DATA}/aboutme.js" data-profile="${DATA}/profile.json" data-hide="${hide}" ${attrs} defer></script>`,
+        <script src="${DATA}/aboutme.js" data-profile="${DATA}/profile.json" data-hide="${hide}" ${layoutAttr(attrs)} defer></script>`,
     }),
   );
   await page.route(`${DATA}/aboutme.js`, (route) => route.fulfill({ contentType: 'text/javascript', body: bundle }));
@@ -315,9 +318,9 @@ async function tileLayout(page) {
   });
 }
 
-for (const attrs of ['', 'data-layout="bogus"']) {
-  test(`the list layout stays the default (${attrs || 'no attribute'})`, async ({ page }) => {
-    await setup(page, { attrs });
+{
+  test('the list layout shows rows when the tag asks for it', async ({ page }) => {
+    await setup(page, { attrs: 'data-layout="list"' });
     await bubble(page).click();
     const dialog = page.getByRole('dialog');
     expect(await dialog.locator('ul').evaluate((list) => getComputedStyle(list).display)).toBe('block');
@@ -861,6 +864,15 @@ test.describe('orbit layout', () => {
     await page.getByRole('button', { name: 'Hide for 1 day' }).click();
     await expect(bubble(page)).toHaveCount(0);
     await expect.poll(() => events).toEqual([{ event: 'open' }, { event: 'click', target: 'github' }, { event: 'open' }, { event: 'dismiss' }]);
+  });
+
+  test('is the layout when the tag names none, or an unknown one', async ({ page }) => {
+    for (const attrs of ['data-layout', 'data-layout="tiles"']) {
+      await setup(page, { attrs });
+      await bubble(page).click();
+      await expect(page.getByRole('link', { name: 'GitHub' })).toHaveCSS('border-radius', '50%');
+      await expect(page.getByRole('button', { name: 'Close' })).toBeHidden();
+    }
   });
 
   test('items fly out from the bubble unless reduced motion is on', async ({ page }) => {

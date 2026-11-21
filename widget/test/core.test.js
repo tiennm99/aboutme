@@ -49,8 +49,8 @@ describe('parseLayout', () => {
     for (const value of ['list', 'grid', 'icons', 'orbit']) expect(parseLayout(value)).toBe(value);
   });
 
-  it('falls back to list for missing or unknown values', () => {
-    for (const value of [undefined, '', 'Grid', ' grid', 'tiles', 'toString']) expect(parseLayout(value)).toBe('list');
+  it('falls back to orbit for missing or unknown values', () => {
+    for (const value of [undefined, '', 'Grid', ' grid', 'tiles', 'Orbit', 'toString']) expect(parseLayout(value)).toBe('orbit');
   });
 });
 

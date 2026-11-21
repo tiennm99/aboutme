@@ -194,10 +194,10 @@ export function visibleLinks(links, pageUrl) {
 /**
  * Reads the link layout from the script tag.
  * @param {string | undefined} value Layout from the script tag.
- * @returns {Layout} One of {@link LAYOUTS}; `list` when the value is missing or unknown.
+ * @returns {Layout} One of {@link LAYOUTS}; `orbit` when the value is missing or unknown.
  */
 export function parseLayout(value) {
-  return LAYOUTS.includes(value) ? /** @type {Layout} */ (value) : 'list';
+  return LAYOUTS.includes(value) ? /** @type {Layout} */ (value) : 'orbit';
 }
 
 /**
