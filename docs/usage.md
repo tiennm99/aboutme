@@ -133,5 +133,11 @@ git tag -a "v$v" -m "v$v"   # annotated, so --follow-tags pushes it
 git push --follow-tags
 ```
 
+Sites load `@1` from jsDelivr, which can keep serving the previous version for
+hours. Once `npm view @tiennm99/aboutme version` shows the new one, refresh it
+once with `curl https://purge.jsdelivr.net/npm/@tiennm99/aboutme@1`. Purging the
+same path again soon after is throttled for about 15 minutes (the response says
+`"throttled": true`), so wait rather than repeat it.
+
 A major release (`2.0.0`) is for breaking changes, such as a new `schemaVersion`;
 sites on `@1` keep the old major.
