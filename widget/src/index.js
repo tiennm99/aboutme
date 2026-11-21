@@ -7,9 +7,10 @@
  * - `data-hide`: hide period after a dismissal, such as `1d` or `2w` (default `7d`).
  * - `data-position`: starting side, `left` or `right` (default `right`).
  * - `data-theme`: `auto` (default, follows the page), `light` or `dark`.
+ * - `data-layout`: `list` (default), `grid` (captioned tiles) or `icons` (tiles without visible captions).
  */
 
-import { hideFor, isHidden, parseDuration, validateProfile } from './core.js';
+import { hideFor, isHidden, parseDuration, parseLayout, validateProfile } from './core.js';
 import { mount } from './widget.js';
 
 /**
@@ -58,6 +59,7 @@ async function start(script) {
   const hide = script.dataset.hide;
   const position = script.dataset.position === 'left' ? 'left' : 'right';
   const theme = ['light', 'dark'].includes(script.dataset.theme) ? script.dataset.theme : 'auto';
+  const layout = parseLayout(script.dataset.layout);
   if (!profileUrl || isHidden(storage(), Date.now())) return;
 
   let profile;
@@ -76,6 +78,7 @@ async function start(script) {
       profile,
       position,
       theme,
+      layout,
       hide: hide ?? '',
       track: (event, target) => track(profile.events, event, target),
       onDismiss: () => hideFor(storage(), Date.now(), parseDuration(hide)),

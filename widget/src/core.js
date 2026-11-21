@@ -8,6 +8,8 @@ export const STORAGE_KEY = 'aboutme:hiddenUntil';
 export const DEFAULT_HIDE = '7d';
 export const ICONS = ['home', 'blog', 'github', 'facebook', 'linkedin', 'x', 'youtube', 'email', 'telegram', 'cv', 'link'];
 
+export const LAYOUTS = ['list', 'grid', 'icons'];
+
 const UNIT_MS = { m: 60_000, h: 3_600_000, d: 86_400_000, w: 604_800_000 };
 const UNIT_NAMES = { m: 'minute', h: 'hour', d: 'day', w: 'week' };
 const DURATION = /^(\d{1,4})\s*([mhdw])$/i;
@@ -35,6 +37,19 @@ export function describeDuration(value) {
   const count = Number(match[1]);
   const unit = UNIT_NAMES[match[2].toLowerCase()];
   return `${count} ${unit}${count === 1 ? '' : 's'}`;
+}
+
+/**
+ * @typedef {'list' | 'grid' | 'icons'} Layout
+ */
+
+/**
+ * Reads the link layout from the script tag.
+ * @param {string | undefined} value Layout from the script tag.
+ * @returns {Layout} One of {@link LAYOUTS}; `list` when the value is missing or unknown.
+ */
+export function parseLayout(value) {
+  return LAYOUTS.includes(value) ? /** @type {Layout} */ (value) : 'list';
 }
 
 /**

@@ -21,7 +21,7 @@ export default [
     languageOptions: { globals: globals.serviceworker },
   },
   {
-    files: ['**/test/**/*.js', '**/e2e/**/*.js', '**/*.config.js', 'widget/build.js'],
+    files: ['**/test/**/*.js', '**/e2e/**/*.js', '**/*.config.js', 'widget/build.js', 'widget/scripts/**/*.js'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
     rules: { 'jsdoc/require-jsdoc': 'off' },
   },

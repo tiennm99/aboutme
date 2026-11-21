@@ -230,10 +230,10 @@ const crowded = {
 };
 const crowdedBubble = (page) => page.getByRole('button', { name: /^About N+$/ });
 
-async function openCrowded(page, size) {
+async function openCrowded(page, size, attrs = '') {
   await page.setViewportSize(size);
   await page.emulateMedia({ reducedMotion: 'reduce' });
-  await setup(page, { data: crowded });
+  await setup(page, { data: crowded, attrs });
   await crowdedBubble(page).click();
   await expect(page.getByRole('dialog')).toBeVisible();
 }
@@ -288,6 +288,129 @@ test('long names clamp to two lines and long labels end in an ellipsis', async (
   expect(label.scroll).toBeGreaterThan(label.client);
   expect(label.overflow).toBe('ellipsis');
 });
+
+const branded = {
+  ...crowded,
+  links: ['github', 'facebook', 'linkedin', 'x', 'youtube', 'telegram', 'home', 'blog', 'cv', 'email', 'link', 'unknown'].map((icon, i) => ({
+    id: `l${i}`,
+    label: `Link number ${i} with a long label here`,
+    url: 'https://example.com',
+    icon,
+  })),
+};
+
+// Every tile sits inside the list, at least 44 px square, and the list never scrolls sideways.
+async function tileLayout(page) {
+  return page.getByRole('dialog').locator('ul').evaluate((list) => {
+    const box = list.getBoundingClientRect();
+    const tiles = [...list.querySelectorAll('a')].map((a) => a.getBoundingClientRect());
+    return {
+      display: getComputedStyle(list).display,
+      columns: getComputedStyle(list).gridTemplateColumns.split(' ').length,
+      overflowX: list.scrollWidth - list.clientWidth,
+      inside: tiles.every((t) => t.left >= box.left - 0.5 && t.right <= box.right + 0.5),
+      small: tiles.filter((t) => t.width < 44 || t.height < 44).length,
+      count: tiles.length,
+    };
+  });
+}
+
+for (const attrs of ['', 'data-layout="bogus"']) {
+  test(`the list layout stays the default (${attrs || 'no attribute'})`, async ({ page }) => {
+    await setup(page, { attrs });
+    await bubble(page).click();
+    const dialog = page.getByRole('dialog');
+    expect(await dialog.locator('ul').evaluate((list) => getComputedStyle(list).display)).toBe('block');
+    const link = dialog.getByRole('link', { name: 'GitHub' });
+    expect(await link.evaluate((a) => getComputedStyle(a).flexDirection)).toBe('row');
+    expect(await link.locator('span').evaluate((span) => getComputedStyle(span).fontSize)).toBe('14px');
+  });
+}
+
+test('brand marks are filled in the list layout too', async ({ page }) => {
+  await setup(page);
+  await bubble(page).click();
+  const github = page.getByRole('link', { name: 'GitHub' }).locator('svg');
+  await expect(github).toHaveClass('fill');
+  expect(await github.evaluate((svg) => getComputedStyle(svg).stroke)).toBe('none');
+  await expect(page.getByRole('link', { name: 'Homepage' }).locator('svg')).not.toHaveClass('fill');
+});
+
+for (const layout of ['grid', 'icons']) {
+  test(`${layout}: tiles with brand marks fit four to a row`, async ({ page }) => {
+    await openCrowded(page, { width: 1280, height: 800 }, `data-layout="${layout}"`);
+    const tiles = await tileLayout(page);
+    expect(tiles).toMatchObject({ display: 'grid', columns: 4, overflowX: 0, inside: true, small: 0, count: 12 });
+  });
+
+  test(`${layout}: a narrow panel shows fewer columns`, async ({ page }) => {
+    await openCrowded(page, { width: 240, height: 600 }, `data-layout="${layout}"`);
+    const tiles = await tileLayout(page);
+    expect(tiles.columns).toBeLessThan(4);
+    expect(tiles).toMatchObject({ overflowX: 0, inside: true, small: 0 });
+  });
+
+  for (const size of [{ width: 320, height: 568 }, { width: 568, height: 320 }]) {
+    test(`${layout}: a panel with 12 links fits a ${size.width}x${size.height} viewport`, async ({ page }) => {
+      await openCrowded(page, size, `data-layout="${layout}"`);
+      await expectPanelFits(page);
+      expect(await tileLayout(page)).toMatchObject({ overflowX: 0, inside: true, small: 0 });
+    });
+  }
+
+  test(`${layout}: the keyboard reaches every tile in order`, async ({ page }) => {
+    await page.setViewportSize({ width: 568, height: 320 });
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await setup(page, { data: branded, attrs: `data-layout="${layout}"` });
+    await crowdedBubble(page).focus();
+    await page.keyboard.press('Enter');
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: 'Close' })).toBeFocused();
+    const list = page.getByRole('dialog').locator('ul');
+    for (const link of branded.links) {
+      await page.keyboard.press('Tab');
+      const tile = page.getByRole('link', { name: link.label });
+      await expect(tile).toBeFocused();
+      // The scrolling list brings the focused tile into view.
+      const [box, tileBox] = [await list.boundingBox(), await tile.boundingBox()];
+      expect(tileBox.y).toBeGreaterThanOrEqual(box.y - 0.5);
+      expect(tileBox.y + tileBox.height).toBeLessThanOrEqual(box.y + box.height + 0.5);
+    }
+    await page.keyboard.press('Tab');
+    await expect(page.getByRole('button', { name: /^Hide for/ })).toBeFocused();
+  });
+}
+
+test('grid: captions show in 11 px type', async ({ page }) => {
+  await setup(page, { attrs: 'data-layout="grid"' });
+  await bubble(page).click();
+  const caption = page.getByRole('link', { name: 'GitHub' }).locator('span');
+  await expect(caption).toBeVisible();
+  expect(await caption.evaluate((span) => getComputedStyle(span).fontSize)).toBe('11px');
+});
+
+test('icons: captions are hidden but stay the accessible name and the title', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await setup(page, { data: branded, attrs: 'data-layout="icons"' });
+  await crowdedBubble(page).click();
+  for (const link of branded.links) {
+    const tile = page.getByRole('link', { name: link.label, exact: true });
+    await expect(tile).toHaveCount(1);
+    await expect(tile).toHaveAttribute('title', link.label);
+    const caption = await tile.locator('span').boundingBox();
+    expect(caption.width).toBeLessThanOrEqual(1);
+    expect(caption.height).toBeLessThanOrEqual(1);
+  }
+});
+
+for (const theme of ['light', 'dark']) {
+  test(`grid: the ${theme} theme colours the tiles`, async ({ page }) => {
+    await setup(page, { attrs: `data-layout="grid" data-theme="${theme}"` });
+    await bubble(page).click();
+    const colour = await page.getByRole('link', { name: 'GitHub' }).evaluate((a) => getComputedStyle(a).color);
+    expect(colour).toBe(theme === 'dark' ? 'rgb(230, 237, 243)' : 'rgb(31, 35, 40)');
+  });
+}
 
 test('a crowded panel fits a short 640x280 viewport', async ({ page }) => {
   await openCrowded(page, { width: 640, height: 280 });

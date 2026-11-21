@@ -1,7 +1,7 @@
 # Widget v1.2.0 to v1.4.0
 
 Status: in progress (2026-11-21). v1.2.0 reviewed, checked on the installed
-sites and released; v1.3.0 next.
+sites and released; v1.3.0 released; v1.4.0 next.
 
 Scope comes from an advisor review of v1.1.0. The review read the code and live
 CSS but did not run a browser, so its pixel numbers are estimates. Nothing here
@@ -48,6 +48,12 @@ is 14.0 KB minified, over the 13 KB target.
 - Bundle budget: under about 13 KB minified.
 
 ## v1.3.0: layouts and brand icons
+
+Done. Five brand marks from simple-icons (CC0). LinkedIn keeps the generic icon:
+simple-icons removed its mark because LinkedIn's brand policy forbids most use.
+The size gate's budget is 17.5 KB (the build is 17.2 KB); the old 13 KB target
+was dropped because the brand paths add about 2.7 KB. Review found no code bugs;
+the site check passed in round 1.
 
 - `data-layout="list|grid|icons"`, default `list`. `grid` shows tiles with an
   11 px caption, 4 columns. `icons` hides the caption visually but keeps it as

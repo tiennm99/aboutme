@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STORAGE_KEY, brightnessOf, describeDuration, hideFor, isHidden, parseDuration, pickTheme, validateProfile } from '../src/core.js';
+import { STORAGE_KEY, brightnessOf, describeDuration, hideFor, isHidden, parseDuration, parseLayout, pickTheme, validateProfile } from '../src/core.js';
 
 const DAY = 86_400_000;
 
@@ -20,6 +20,16 @@ describe('parseDuration', () => {
     for (const value of [undefined, '', '0d', 'soon', '1y', '-1d']) {
       expect(parseDuration(value)).toBe(7 * DAY);
     }
+  });
+});
+
+describe('parseLayout', () => {
+  it('accepts list, grid and icons', () => {
+    for (const value of ['list', 'grid', 'icons']) expect(parseLayout(value)).toBe(value);
+  });
+
+  it('falls back to list for missing or unknown values', () => {
+    for (const value of [undefined, '', 'Grid', ' grid', 'tiles', 'toString']) expect(parseLayout(value)).toBe('list');
   });
 });
 

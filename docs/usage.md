@@ -8,6 +8,7 @@
 | `data-hide` | `7d` | How long the bubble stays hidden after a dismissal: a number and `m`, `h`, `d` or `w` (`30m`, `12h`, `1d`, `2w`) |
 | `data-position` | `right` | Starting side: `left` or `right` |
 | `data-theme` | `auto` | Colours: `auto` matches the page (its background, a `dark`/`light` class or `data-theme`-style attribute on `<html>` or `<body>`, its text colour, then the system setting) and follows it when it changes; `light` or `dark` fixes them |
+| `data-layout` | `list` | How links show: `list` is one row each with icon and label; `grid` is tiles, the icon above an 11 px caption, up to 4 a row; `icons` is the same tiles without the caption, which stays the link's accessible name and tooltip |
 
 Auto mode reads only `<html>` and `<body>`. A site that paints its background
 and text on a wrapper element, or switches theme by swapping a stylesheet,
@@ -41,7 +42,9 @@ Worker's tests check `profile.json` against it.
 ```
 
 - `icon` is one of `home`, `blog`, `github`, `facebook`, `linkedin`, `x`,
-  `youtube`, `email`, `telegram`, `cv`, `link` (the default).
+  `youtube`, `email`, `telegram`, `cv`, `link` (the default). `github`,
+  `facebook`, `x`, `youtube` and `telegram` show the brand's mark; LinkedIn's
+  brand policy does not allow its logo here, so `linkedin` shows a generic icon.
 - Link URLs must be `https:`, `http:` or `mailto:`; anything else is dropped.
 - Unknown fields are ignored, so adding an optional field needs no new version.
   A breaking change raises `schemaVersion` together with a new widget major
@@ -85,7 +88,7 @@ ORDER BY count DESC
 
 ```sh
 npm install
-npm run check        # lint, build, unit tests
+npm run check        # lint, build, bundle size budget, unit tests
 npm run test:e2e     # Playwright drag and dismiss tests, desktop and touch
 npm run dev -w worker
 ```

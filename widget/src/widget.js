@@ -24,15 +24,26 @@ const ICON_PATHS = {
   close: '<path d="M6 6l12 12M18 6L6 18"/>',
   home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   blog: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 6l4 4"/>',
-  github: '<path d="M8 8l-4 4 4 4M16 8l4 4-4 4"/>',
-  facebook: '<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5"/><circle cx="17" cy="9" r="2.5"/><path d="M15 15c3 0 6 1.5 6 4.5"/>',
   linkedin: '<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M9 7V5h6v2"/>',
-  x: '<path d="M4 5h16v11H9l-5 4z"/>',
-  youtube: '<rect x="3" y="6" width="18" height="12" rx="3"/><path d="M10 9l5 3-5 3z"/>',
   email: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
-  telegram: '<path d="M21 4L3 11l6 2 2 6 3-4 5 4z"/><path d="M9 13l12-9"/>',
   cv: '<path d="M6 3h9l4 4v14H6z"/><path d="M14 3v5h5M9 12h7M9 16h7"/>',
   link: '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+};
+
+// Filled single-path brand marks, drawn in the text colour. LinkedIn keeps the
+// generic stroke icon above: simple-icons removed its mark in 14.0.0 because
+// LinkedIn's brand policy forbids such use (simple-icons#11372, #11380).
+const BRAND_PATHS = {
+  // simple-icons 16.38.0, slug "github", CC0-1.0 (https://github.com/simple-icons/simple-icons)
+  github: 'M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12',
+  // simple-icons 16.38.0, slug "facebook", CC0-1.0 (https://github.com/simple-icons/simple-icons)
+  facebook: 'M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a8.68 8.68 0 0 1 1.141.195v3.325a8.623 8.623 0 0 0-.653-.036 26.805 26.805 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.686 1.686 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647Z',
+  // simple-icons 16.38.0, slug "x", CC0-1.0 (https://github.com/simple-icons/simple-icons)
+  x: 'M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z',
+  // simple-icons 16.38.0, slug "youtube", CC0-1.0 (https://github.com/simple-icons/simple-icons)
+  youtube: 'M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z',
+  // simple-icons 16.38.0, slug "telegram", CC0-1.0 (https://github.com/simple-icons/simple-icons)
+  telegram: 'M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z',
 };
 
 const STYLE = `
@@ -49,6 +60,7 @@ const STYLE = `
   color-scheme: dark;
 }
 svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+svg.fill { fill: currentColor; stroke: none; padding: 1px; }
 .bubble {
   position: fixed; left: 0; top: 0; width: ${SIZE}px; height: ${SIZE}px; z-index: 2147483001;
   border: 0; border-radius: 50%; padding: 0; cursor: grab; touch-action: none; user-select: none;
@@ -81,6 +93,12 @@ ul { list-style: none; margin: 0; padding: 0; flex: 1; min-height: 0; overflow-y
 a { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 8px; color: var(--fg); text-decoration: none; }
 a:hover { background: var(--hover); }
 a span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Grid and icons layouts: tiles with the icon above a caption, at most 4 columns. */
+.root[data-l] ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(56px, 1fr)); gap: 4px; align-content: start; }
+.root[data-l] a { position: relative; flex-direction: column; justify-content: center; gap: 4px; min-height: 56px; padding: 8px 2px; }
+.root[data-l] a svg { width: 24px; height: 24px; }
+.root[data-l] a span { flex: none; width: 100%; font-size: 11px; line-height: 1.2; text-align: center; }
+.root[data-l="icons"] a span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .hide { flex: none; width: 100%; margin-top: 8px; padding: 6px; border: 0; border-top: 1px solid var(--line); background: none; color: var(--muted); font: inherit; font-size: 12px; cursor: pointer; }
 .hide:hover { color: var(--fg); }
 .target {
@@ -95,15 +113,17 @@ a span { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-over
 `;
 
 /**
- * Builds an inline SVG icon element.
- * @param {string} name Key of {@link ICON_PATHS}.
+ * Builds an inline SVG icon element: a filled brand mark, or a stroke icon.
+ * @param {string} name Key of {@link BRAND_PATHS} or {@link ICON_PATHS}.
  * @returns {SVGSVGElement} The icon.
  */
 function icon(name) {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('viewBox', '0 0 24 24');
   svg.setAttribute('aria-hidden', 'true');
-  svg.innerHTML = ICON_PATHS[name] ?? ICON_PATHS.link;
+  const brand = BRAND_PATHS[name];
+  if (brand) svg.classList.add('fill');
+  svg.innerHTML = brand ? `<path d="${brand}"/>` : (ICON_PATHS[name] ?? ICON_PATHS.link);
   return svg;
 }
 
@@ -177,15 +197,18 @@ function pageTheme(media) {
  * @param {import('./core.js').Profile} options.profile Validated profile.
  * @param {'left' | 'right'} options.position Starting side of the screen.
  * @param {'auto' | 'light' | 'dark'} options.theme Colour theme; `auto` follows the page.
+ * @param {import('./core.js').Layout} options.layout How links are shown: rows, captioned tiles or icon tiles.
  * @param {string} options.hide Hide period as written in the script tag.
  * @param {(event: string, target?: string) => void} options.track Sends an anonymous count.
  * @param {() => void} options.onDismiss Called once when the visitor dismisses the widget.
  * @returns {HTMLElement} The shadow host, to allow removal.
  */
-export function mount({ profile, position, theme, hide, track, onDismiss }) {
+export function mount({ profile, position, theme, layout, hide, track, onDismiss }) {
   const host = document.createElement('aboutme-widget');
   const shadow = host.attachShadow({ mode: 'open' });
   const root = el('div', 'root');
+  // The list look keeps the base styles; grid and icons are styled through this attribute.
+  if (layout !== 'list') root.dataset.l = layout;
   const style = el('style');
   style.textContent = STYLE;
 
