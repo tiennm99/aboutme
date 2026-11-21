@@ -1,6 +1,6 @@
 {
   "name": "@tiennm99/aboutme",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "A draggable floating 'about me' bubble for any website: one script tag shows your blog, GitHub, CV and socials. No framework, no cookies, light and dark themes.",
   "type": "module",
   "license": "MIT",
