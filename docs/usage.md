@@ -113,6 +113,7 @@ npm install
 npm run check        # lint, build, bundle size budget, unit tests
 npm run test:e2e     # Playwright drag and dismiss tests, desktop and touch
 npm run dev -w worker
+npm run build:pages  # the simple setup's GitHub Pages site, into _site/
 ```
 
 The e2e tests use the system Chrome (`channel: 'chrome'`). Set `PW_CHANNEL=` to

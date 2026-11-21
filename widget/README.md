@@ -12,7 +12,7 @@ the bottom of the screen, or press "Hide", and it stays hidden for a period you 
 ></script>
 ```
 
-The profile format is in [`profile.schema.json`](profile.schema.json). Options, the
-profile Worker and anonymous counts: [github.com/tiennm99/aboutme](https://github.com/tiennm99/aboutme).
+The profile format is in [`profile.schema.json`](profile.schema.json). Setups (GitHub Pages, or a
+Cloudflare Worker with anonymous counts) and options: [github.com/tiennm99/aboutme](https://github.com/tiennm99/aboutme).
 
 MIT licensed.

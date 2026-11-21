@@ -21,3 +21,7 @@
   `github.io` host) share the hide period and the remembered position, and a
   link to that host's root is hidden on all of them.
 - **Ad blockers** may block the count requests; the bubble still works.
+- **The simple setup has fewer guarantees.** It sends no counts, its script has no
+  version to pin or check with SRI, GitHub Pages caches files for 10 minutes, and
+  changing the `ABOUTME_PROFILE` variable publishes nothing until the Pages
+  workflow runs again ([setup-simple.md](setup-simple.md)).
