@@ -3,7 +3,7 @@ import jsdoc from 'eslint-plugin-jsdoc';
 import globals from 'globals';
 
 export default [
-  { ignores: ['**/dist/', '**/node_modules/', '**/.wrangler/', '**/test-results/', '**/playwright-report/'] },
+  { ignores: ['**/dist/', '**/node_modules/', '**/.wrangler/', '**/test-results/', '**/playwright-report/', '_site/'] },
   js.configs.recommended,
   jsdoc.configs['flat/recommended'],
   {
@@ -21,7 +21,7 @@ export default [
     languageOptions: { globals: globals.serviceworker },
   },
   {
-    files: ['**/test/**/*.js', '**/e2e/**/*.js', '**/*.config.js', 'widget/build.js', 'widget/scripts/**/*.js'],
+    files: ['**/test/**/*.js', '**/e2e/**/*.js', '**/*.config.js', 'widget/build.js', 'widget/scripts/**/*.js', 'scripts/**/*.js'],
     languageOptions: { globals: { ...globals.node, ...globals.browser } },
     rules: { 'jsdoc/require-jsdoc': 'off' },
   },

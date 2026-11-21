@@ -12,7 +12,8 @@
     "test": "npm test -w widget && npm test -w worker",
     "test:e2e": "npm run test:e2e -w widget",
     "check": "npm run lint && npm run build && npm run size -w widget && npm test",
-    "deploy": "npm run deploy -w worker"
+    "deploy": "npm run deploy -w worker",
+    "build:pages": "npm run build && node scripts/build-pages.js"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
