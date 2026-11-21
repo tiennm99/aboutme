@@ -16,14 +16,14 @@ const profile = {
   ],
 };
 
-async function setup(page, { hide = '1d', attrs = '', head = '', data = profile, meta = 'width=device-width' } = {}) {
+async function setup(page, { hide = '1d', attrs = '', head = '', data = profile, meta = 'width=device-width', lang = '' } = {}) {
   const events = [];
   const origins = [];
   await page.route(`${SITE}/`, (route) =>
     route.fulfill({
       contentType: 'text/html',
       // no-referrer is the strictest policy for the Origin header the Worker relies on.
-      body: `<!doctype html><meta name="viewport" content="${meta}"><meta name="referrer" content="no-referrer">${head}
+      body: `<!doctype html>${lang ? `<html lang="${lang}">` : ''}<meta name="viewport" content="${meta}"><meta name="referrer" content="no-referrer">${head}
         <h1>Host page</h1>
         <script src="${DATA}/aboutme.js" data-profile="${DATA}/profile.json" data-hide="${hide}" ${attrs} defer></script>`,
     }),
@@ -582,3 +582,145 @@ test.describe('a page wider than the phone screen', () => {
     await expect(bubble(page)).toHaveCount(0);
   });
 });
+
+const box = async (page, locator = bubble(page)) => {
+  const { x, y } = await locator.boundingBox();
+  return { x: Math.round(x), y: Math.round(y) };
+};
+const storedPosition = (page) => page.evaluate(() => localStorage.getItem('aboutme:pos'));
+
+for (const [position, expected] of [
+  ['top-left', () => ({ x: 16, y: 32 })],
+  ['top-right', ({ width }) => ({ x: width - 68, y: 32 })],
+  ['bottom-left', ({ height }) => ({ x: 16, y: height - 84 })],
+  ['bottom-right', ({ width, height }) => ({ x: width - 68, y: height - 84 })],
+  ['left', ({ height }) => ({ x: 16, y: height - 84 })],
+  ['bogus', ({ width, height }) => ({ x: width - 68, y: height - 84 })],
+]) {
+  test(`position: data-position="${position}" starts in its corner`, async ({ page }) => {
+    await setup(page, { attrs: `data-position="${position}"` });
+    await expect.poll(() => box(page)).toEqual(expected(page.viewportSize()));
+    // Nothing is stored until the visitor drags the bubble.
+    expect(await storedPosition(page)).toBeNull();
+  });
+}
+
+for (const [attrs, expected] of [
+  ['data-position="top-left" data-offset="100"', () => ({ x: 16, y: 100 })],
+  ['data-offset="100px"', ({ width, height }) => ({ x: width - 68, y: height - 152 })],
+  ['data-position="top-right" data-offset="0"', ({ width }) => ({ x: width - 68, y: 16 })],
+  ['data-position="top-left" data-offset="5000"', ({ height }) => ({ x: 16, y: height - 68 })],
+  ['data-offset="5000"', ({ width }) => ({ x: width - 68, y: 16 })],
+]) {
+  test(`position: ${attrs} sets the starting distance, kept on screen`, async ({ page }) => {
+    await setup(page, { attrs });
+    await expect.poll(() => box(page)).toEqual(expected(page.viewportSize()));
+  });
+}
+
+test('position: a dragged position is remembered across reloads and beats data-position', async ({ page, hasTouch }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await setup(page, { attrs: 'data-position="top-right" data-offset="40"' });
+  const start = await bubble(page).boundingBox();
+  const { height } = page.viewportSize();
+  await drag(page, hasTouch, { x: start.x + 20, y: start.y + 20 }, { x: 60, y: height - 220 }, 8);
+  await expect.poll(() => box(page)).toEqual({ x: 16, y: height - 240 });
+  expect(JSON.parse(await storedPosition(page))).toEqual({ side: 'left', fromBottom: true, gap: 188, share: 188 / (height - 52) });
+
+  await page.reload();
+  await expect.poll(() => box(page)).toEqual({ x: 16, y: height - 240 });
+});
+
+test('position: a corrupt stored position is ignored and overwritten by the next drag', async ({ page, hasTouch }) => {
+  await page.addInitScript(() => localStorage.setItem('aboutme:pos', '{"side":"left","fromBottom":'));
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await setup(page, { attrs: 'data-position="top-left"' });
+  await expect.poll(() => box(page)).toEqual({ x: 16, y: 32 });
+  const start = await bubble(page).boundingBox();
+  const { width } = page.viewportSize();
+  await drag(page, hasTouch, { x: start.x + 20, y: start.y + 20 }, { x: width - 40, y: 160 }, 8);
+  await expect.poll(() => box(page)).toEqual({ x: width - 68, y: 140 });
+  expect(JSON.parse(await storedPosition(page))).toMatchObject({ side: 'right', fromBottom: false, gap: 140 });
+});
+
+const viBubble = (page) => page.getByRole('button', { name: 'Giới thiệu về Jane Doe' });
+
+async function expectVietnamese(page) {
+  await expect(viBubble(page)).toHaveAttribute('title', 'Kéo xuống dưới để ẩn');
+  await viBubble(page).click();
+  await expect(page.getByRole('dialog', { name: 'Giới thiệu về Jane Doe' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Đóng' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Ẩn trong 1 ngày' })).toBeVisible();
+}
+
+test('language: <html lang="vi"> shows Vietnamese strings', async ({ page }) => {
+  await setup(page, { lang: 'vi' });
+  await expectVietnamese(page);
+});
+
+test('language: data-lang="vi" shows Vietnamese strings on an English page', async ({ page }) => {
+  await setup(page, { lang: 'en', attrs: 'data-lang="vi"', hide: '1d' });
+  await expectVietnamese(page);
+});
+
+test('language: data-lang="en" keeps English on a Vietnamese page', async ({ page }) => {
+  await setup(page, { lang: 'vi-VN', attrs: 'data-lang="en"', hide: '2w' });
+  await expect(bubble(page)).toHaveAttribute('title', 'Drag to the bottom to hide');
+  await bubble(page).click();
+  await expect(page.getByRole('button', { name: 'Close' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Hide for 2 weeks' })).toBeVisible();
+});
+
+test('the link to the current site is hidden and counts keep their ids', async ({ page }) => {
+  const own = {
+    ...profile,
+    links: [{ id: 'site', label: 'This site', url: `${SITE}/`, icon: 'home' }, ...profile.links],
+  };
+  const { events } = await setup(page, { data: own });
+  await bubble(page).click();
+  await expect(page.getByRole('link', { name: 'This site' })).toHaveCount(0);
+  await expect(page.getByRole('dialog').getByRole('link')).toHaveCount(2);
+  const popup = page.waitForEvent('popup');
+  await page.getByRole('link', { name: 'GitHub' }).click();
+  await (await popup).close();
+  await expect.poll(() => events).toEqual([{ event: 'open' }, { event: 'click', target: 'github' }]);
+});
+
+test('when every link points at the current site, all of them show', async ({ page }) => {
+  const own = {
+    ...profile,
+    links: [
+      { id: 'site', label: 'This site', url: `${SITE}/`, icon: 'home' },
+      { id: 'about', label: 'About', url: `${SITE}/#about`, icon: 'link' },
+    ],
+  };
+  await setup(page, { data: own });
+  await bubble(page).click();
+  await expect(page.getByRole('dialog').getByRole('link')).toHaveCount(2);
+});
+
+test('no count is sent under Global Privacy Control', async ({ page }) => {
+  await page.addInitScript(() => Object.defineProperty(Navigator.prototype, 'globalPrivacyControl', { get: () => true }));
+  const { events } = await setup(page);
+  await bubble(page).click();
+  const popup = page.waitForEvent('popup');
+  await page.getByRole('link', { name: 'Homepage' }).click();
+  await (await popup).close();
+  await page.getByRole('button', { name: 'Hide for 1 day' }).click();
+  await expect(bubble(page)).toHaveCount(0);
+  // Dismissal still works; give any stray request time to arrive.
+  expect(await page.evaluate(() => localStorage.getItem('aboutme:hiddenUntil'))).not.toBeNull();
+  await page.waitForTimeout(500);
+  expect(events).toEqual([]);
+});
+
+for (const position of ['top-left', 'top-right']) {
+  for (const size of [{ width: 320, height: 568 }, { width: 568, height: 320 }]) {
+    test(`position: a crowded panel opened from ${position} fits a ${size.width}x${size.height} viewport`, async ({ page }) => {
+      await openCrowded(page, size, `data-position="${position}"`);
+      const ball = await crowdedBubble(page).boundingBox();
+      expect(ball.y).toBe(32);
+      await expectPanelFits(page);
+    });
+  }
+}

@@ -1,7 +1,7 @@
 # Widget v1.2.0 to v1.4.0
 
 Status: in progress (2026-11-21). v1.2.0 reviewed, checked on the installed
-sites and released; v1.3.0 released; v1.4.0 next.
+sites and released; v1.3.0 and v1.4.0 released. Only "Later" remains.
 
 Scope comes from an advisor review of v1.1.0. The review read the code and live
 CSS but did not run a browser, so its pixel numbers are estimates. Nothing here
@@ -64,6 +64,12 @@ the site check passed in round 1.
 - A bundle size check in CI.
 
 ## v1.4.0: placement and language
+
+Done. Review found one real bug (a `/cv/` link stayed visible on `/cv`), fixed.
+Position memory is on by default; it only changes anything for a visitor who
+drags. The site check passed in round 1; `top-left` sits on the header of all
+three installed sites, so they keep the default corner. Bundle 18.9 KB, budget
+19.2 KB.
 
 - `data-position` corners (`top-left|top-right|bottom-left|bottom-right`;
   `left`/`right` stay as bottom) and `data-offset`.

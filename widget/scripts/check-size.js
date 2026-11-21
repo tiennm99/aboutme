@@ -1,8 +1,10 @@
 // Fails when the minified bundle grows past its budget, so size changes are deliberate.
 import { statSync } from 'node:fs';
 
-// About 300 bytes above the v1.3.0 build; the brand icon paths are most of it.
-const BUDGET = 17_500;
+// About 300 bytes above the v1.4.0 build (18,939 bytes). Raised by 1,700 bytes
+// from 17,500: corner placement, position memory, English and Vietnamese UI
+// strings and current-site link hiding added about 1.75 KB to the v1.3.0 build.
+const BUDGET = 19_200;
 const file = new URL('../dist/aboutme.js', import.meta.url);
 const size = statSync(file).size;
 

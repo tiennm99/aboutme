@@ -1,5 +1,25 @@
 import { describe, expect, it } from 'vitest';
-import { STORAGE_KEY, brightnessOf, describeDuration, hideFor, isHidden, parseDuration, parseLayout, pickTheme, validateProfile } from '../src/core.js';
+import {
+  POSITION_KEY,
+  STORAGE_KEY,
+  STRINGS,
+  brightnessOf,
+  describeDuration,
+  fill,
+  hideFor,
+  isCurrentSite,
+  isHidden,
+  parseDuration,
+  parseLayout,
+  parseOffset,
+  parsePosition,
+  pickLang,
+  pickTheme,
+  readPlacement,
+  savePlacement,
+  validateProfile,
+  visibleLinks,
+} from '../src/core.js';
 
 const DAY = 86_400_000;
 
@@ -191,5 +211,144 @@ describe('pickTheme', () => {
     expect(pickTheme({ ...page, prefersDark: true })).toBe('dark');
     expect(pickTheme({ ...page, prefersDark: false })).toBe('light');
     expect(pickTheme({ ...page, text: 'bogus', prefersDark: true })).toBe('dark');
+  });
+});
+
+describe('parsePosition', () => {
+  it('reads the four corners', () => {
+    expect(parsePosition('top-left')).toEqual({ side: 'left', fromBottom: false });
+    expect(parsePosition('top-right')).toEqual({ side: 'right', fromBottom: false });
+    expect(parsePosition('bottom-left')).toEqual({ side: 'left', fromBottom: true });
+    expect(parsePosition('bottom-right')).toEqual({ side: 'right', fromBottom: true });
+  });
+
+  it('keeps left and right as the bottom corners', () => {
+    expect(parsePosition('left')).toEqual({ side: 'left', fromBottom: true });
+    expect(parsePosition('right')).toEqual({ side: 'right', fromBottom: true });
+  });
+
+  it('falls back to bottom-right for missing or unknown values', () => {
+    for (const value of [undefined, '', 'top', 'center', 'Top-Left', 'middle-left', 'top-left ']) {
+      expect(parsePosition(value)).toEqual({ side: 'right', fromBottom: true });
+    }
+  });
+});
+
+describe('parseOffset', () => {
+  it('reads pixels with or without a unit', () => {
+    expect(parseOffset('0')).toBe(0);
+    expect(parseOffset('120')).toBe(120);
+    expect(parseOffset(' 24px ')).toBe(24);
+    expect(parseOffset('99999')).toBe(99999);
+  });
+
+  it('falls back to 32 for missing or invalid values', () => {
+    for (const value of [undefined, '', '-10', '1.5', '10%', '2em', 'abc']) expect(parseOffset(value)).toBe(32);
+  });
+});
+
+describe('placement storage', () => {
+  const placement = { side: 'left', fromBottom: false, gap: 120, share: 0.2 };
+
+  it('round-trips a dragged position under its own key', () => {
+    const storage = memoryStorage();
+    savePlacement(storage, placement);
+    expect(JSON.parse(storage.getItem(POSITION_KEY))).toEqual(placement);
+    expect(readPlacement(storage)).toEqual(placement);
+  });
+
+  it('ignores missing and corrupt values', () => {
+    expect(readPlacement(memoryStorage())).toBeNull();
+    expect(readPlacement(null)).toBeNull();
+    for (const raw of ['{', 'null', '42', '"left"', '[]', '{"side":"up","fromBottom":true,"gap":1,"share":0}',
+      '{"side":"left","fromBottom":"yes","gap":1,"share":0}', '{"side":"left","fromBottom":true,"gap":-1,"share":0}',
+      '{"side":"left","fromBottom":true,"gap":1,"share":2}', '{"side":"left","fromBottom":true,"gap":"1","share":0}',
+      '{"side":"left","fromBottom":true,"share":0}']) {
+      const storage = memoryStorage();
+      storage.setItem(POSITION_KEY, raw);
+      expect(readPlacement(storage)).toBeNull();
+    }
+  });
+
+  it('survives storage that throws', () => {
+    const blocked = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } };
+    expect(readPlacement(blocked)).toBeNull();
+    expect(() => savePlacement(blocked, placement)).not.toThrow();
+  });
+});
+
+describe('UI strings', () => {
+  it('picks data-lang first, then the page language, then English', () => {
+    expect(pickLang('vi', 'en')).toBe('vi');
+    expect(pickLang('en', 'vi')).toBe('en');
+    expect(pickLang(undefined, 'vi')).toBe('vi');
+    expect(pickLang(undefined, 'vi-VN')).toBe('vi');
+    expect(pickLang('', 'VI')).toBe('vi');
+    expect(pickLang('fr', 'vi')).toBe('vi');
+    for (const page of [undefined, null, '', 'en', 'en-US', 'fr', 'vie', 'video']) expect(pickLang(undefined, page)).toBe('en');
+  });
+
+  it('has every string in both languages', () => {
+    expect(Object.keys(STRINGS.vi).sort()).toEqual(Object.keys(STRINGS.en).sort());
+    expect(fill(STRINGS.en.about, 'name', 'Jane')).toBe('About Jane');
+    expect(fill(STRINGS.vi.about, 'name', 'Jane')).toBe('Giới thiệu về Jane');
+    expect(STRINGS.vi.drag).toBe('Kéo xuống dưới để ẩn');
+    expect(STRINGS.vi.close).toBe('Đóng');
+  });
+
+  it('inserts names literally', () => {
+    expect(fill(STRINGS.en.about, 'name', "$& $' $1")).toBe("About $& $' $1");
+  });
+
+  it('describes hide periods in Vietnamese without plurals', () => {
+    expect(fill(STRINGS.vi.hide, 'period', describeDuration('7d', 'vi'))).toBe('Ẩn trong 7 ngày');
+    expect(describeDuration('1d', 'vi')).toBe('1 ngày');
+    expect(describeDuration('30m', 'vi')).toBe('30 phút');
+    expect(describeDuration('12h', 'vi')).toBe('12 giờ');
+    expect(describeDuration('2w', 'vi')).toBe('2 tuần');
+    expect(describeDuration('bad', 'vi')).toBe('7 ngày');
+    expect(fill(STRINGS.en.hide, 'period', describeDuration('7d', 'en'))).toBe('Hide for 7 days');
+  });
+});
+
+describe('isCurrentSite', () => {
+  it('matches the site root and paths at or above the page', () => {
+    expect(isCurrentSite('https://site.test/', 'https://site.test/posts/1')).toBe(true);
+    expect(isCurrentSite('https://site.test', 'https://site.test/')).toBe(true);
+    expect(isCurrentSite('https://site.test/blog', 'https://site.test/blog')).toBe(true);
+    expect(isCurrentSite('https://site.test/blog', 'https://site.test/blog/post?x=1#y')).toBe(true);
+    expect(isCurrentSite('https://site.test/blog/', 'https://site.test/blog/post')).toBe(true);
+    expect(isCurrentSite('https://site.test/cv/', 'https://site.test/cv')).toBe(true);
+    expect(isCurrentSite('https://site.test/cv/', 'https://site.test/cv/')).toBe(true);
+  });
+
+  it('does not match other sites, other paths or non-web links', () => {
+    expect(isCurrentSite('https://other.test/', 'https://site.test/')).toBe(false);
+    expect(isCurrentSite('http://site.test/', 'https://site.test/')).toBe(false);
+    expect(isCurrentSite('https://site.test:8443/', 'https://site.test/')).toBe(false);
+    expect(isCurrentSite('https://blog.site.test/', 'https://site.test/')).toBe(false);
+    expect(isCurrentSite('https://site.test/blog', 'https://site.test/')).toBe(false);
+    expect(isCurrentSite('https://site.test/blog', 'https://site.test/blogger')).toBe(false);
+    expect(isCurrentSite('https://site.test/cv/', 'https://site.test/cvx')).toBe(false);
+    expect(isCurrentSite('mailto:me@site.test', 'https://site.test/')).toBe(false);
+    expect(isCurrentSite('https://site.test/', 'about:blank')).toBe(false);
+    expect(isCurrentSite('not a url', 'https://site.test/')).toBe(false);
+  });
+});
+
+describe('visibleLinks', () => {
+  const links = [
+    { id: 'home', url: 'https://site.test/' },
+    { id: 'blog', url: 'https://blog.test/' },
+  ];
+
+  it('drops the link to the current site and keeps the rest in order', () => {
+    expect(visibleLinks(links, 'https://site.test/about').map((link) => link.id)).toEqual(['blog']);
+    expect(visibleLinks(links, 'https://elsewhere.test/').map((link) => link.id)).toEqual(['home', 'blog']);
+  });
+
+  it('keeps every link when all of them point at the current site', () => {
+    const own = [links[0], { id: 'cv', url: 'https://site.test/cv' }];
+    expect(visibleLinks(own, 'https://site.test/cv')).toEqual(own);
   });
 });

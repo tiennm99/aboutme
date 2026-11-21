@@ -1,5 +1,6 @@
 /**
- * Pure helpers shared by the widget: hide timer, profile validation and URLs.
+ * Pure helpers shared by the widget: hide timer, placement, UI strings,
+ * profile validation and URLs.
  * Nothing here touches the DOM, so it is unit tested directly.
  */
 
@@ -9,9 +10,10 @@ export const DEFAULT_HIDE = '7d';
 export const ICONS = ['home', 'blog', 'github', 'facebook', 'linkedin', 'x', 'youtube', 'email', 'telegram', 'cv', 'link'];
 
 export const LAYOUTS = ['list', 'grid', 'icons'];
+export const POSITION_KEY = 'aboutme:pos';
+export const DEFAULT_OFFSET = 32;
 
 const UNIT_MS = { m: 60_000, h: 3_600_000, d: 86_400_000, w: 604_800_000 };
-const UNIT_NAMES = { m: 'minute', h: 'hour', d: 'day', w: 'week' };
 const DURATION = /^(\d{1,4})\s*([mhdw])$/i;
 const LINK_ID = /^[a-z0-9-]{1,32}$/;
 
@@ -27,16 +29,162 @@ export function parseDuration(value) {
 }
 
 /**
+ * @typedef {'en' | 'vi'} Lang
+ */
+
+/**
+ * UI strings per language. `{name}` is the profile name and `{period}` the
+ * hide period; `units` names each unit once, and `plural` is added after it
+ * when the count is not 1.
+ */
+export const STRINGS = {
+  en: {
+    about: 'About {name}',
+    drag: 'Drag to the bottom to hide',
+    close: 'Close',
+    hide: 'Hide for {period}',
+    units: { m: 'minute', h: 'hour', d: 'day', w: 'week' },
+    plural: 's',
+  },
+  vi: {
+    about: 'Giới thiệu về {name}',
+    drag: 'Kéo xuống dưới để ẩn',
+    close: 'Đóng',
+    hide: 'Ẩn trong {period}',
+    // Vietnamese nouns have no plural form.
+    units: { m: 'phút', h: 'giờ', d: 'ngày', w: 'tuần' },
+    plural: '',
+  },
+};
+
+/**
+ * Picks the UI language: the script tag's `data-lang`, then the page's
+ * `<html lang>` (`vi` or `vi-*` means Vietnamese), then English.
+ * @param {string | undefined} dataLang Language from the script tag.
+ * @param {string | null | undefined} pageLang The page's `lang` attribute.
+ * @returns {Lang} The language.
+ */
+export function pickLang(dataLang, pageLang) {
+  if (dataLang === 'en' || dataLang === 'vi') return dataLang;
+  return /^vi(-|$)/i.test(String(pageLang ?? '').trim()) ? 'vi' : 'en';
+}
+
+/**
+ * Fills a `{key}` placeholder in a UI string; values are inserted literally.
+ * @param {string} template String from {@link STRINGS}.
+ * @param {string} key Placeholder name.
+ * @param {string} value Replacement.
+ * @returns {string} The filled string.
+ */
+export function fill(template, key, value) {
+  return template.replace(`{${key}}`, () => value);
+}
+
+/**
  * Describes a hide period for the hide button, such as `1 week` or `3 days`.
  * @param {string | undefined} value Period from the script tag.
+ * @param {Lang} [lang] UI language.
  * @returns {string} Human-readable period.
  */
-export function describeDuration(value) {
+export function describeDuration(value, lang = 'en') {
   const match = DURATION.exec(String(value ?? '').trim());
-  if (!match || Number(match[1]) === 0) return describeDuration(DEFAULT_HIDE);
+  if (!match || Number(match[1]) === 0) return describeDuration(DEFAULT_HIDE, lang);
   const count = Number(match[1]);
-  const unit = UNIT_NAMES[match[2].toLowerCase()];
-  return `${count} ${unit}${count === 1 ? '' : 's'}`;
+  const { units, plural } = STRINGS[lang];
+  return `${count} ${units[match[2].toLowerCase()]}${count === 1 ? '' : plural}`;
+}
+
+/**
+ * @typedef {object} Placement
+ * @property {'left' | 'right'} side Side of the screen.
+ * @property {boolean} fromBottom Whether the distance is from the bottom edge.
+ * @property {number} gap Distance in px from that edge to the bubble.
+ * @property {number} share The gap as a share of the height the bubble can move in.
+ */
+
+/**
+ * Reads the starting corner from the script tag. `left` and `right` mean the
+ * bottom corners; anything unknown is `bottom-right`.
+ * @param {string | undefined} value Position from the script tag.
+ * @returns {{ side: 'left' | 'right', fromBottom: boolean }} Side and vertical edge.
+ */
+export function parsePosition(value) {
+  const match = /^(?:(top|bottom)-)?(left|right)$/.exec(String(value ?? ''));
+  return match ? { side: /** @type {'left' | 'right'} */ (match[2]), fromBottom: match[1] !== 'top' } : { side: 'right', fromBottom: true };
+}
+
+/**
+ * Reads the starting distance from the vertical edge, such as `24` or `24px`.
+ * @param {string | undefined} value Offset from the script tag.
+ * @returns {number} Pixels; {@link DEFAULT_OFFSET} when missing or invalid.
+ */
+export function parseOffset(value) {
+  const match = /^(\d+)(px)?$/.exec(String(value ?? '').trim());
+  return match ? Number(match[1]) : DEFAULT_OFFSET;
+}
+
+/**
+ * Reads the visitor's dragged position from storage.
+ * @param {Pick<Storage, 'getItem'> | null} storage Browser storage, or null when unavailable.
+ * @returns {Placement | null} The stored placement; null when missing or corrupt.
+ */
+export function readPlacement(storage) {
+  try {
+    const value = JSON.parse(storage?.getItem(POSITION_KEY) ?? 'null');
+    const { side, fromBottom, gap, share } = value ?? {};
+    const ok = (n, max) => typeof n === 'number' && n >= 0 && n <= max;
+    if ((side === 'left' || side === 'right') && typeof fromBottom === 'boolean' && ok(gap, 1e5) && ok(share, 1)) {
+      return { side, fromBottom, gap, share };
+    }
+  } catch {
+    // Blocked storage or bad JSON: use the script tag's position.
+  }
+  return null;
+}
+
+/**
+ * Stores the visitor's dragged position. It stays in their browser only.
+ * @param {Pick<Storage, 'setItem'> | null} storage Browser storage, or null when unavailable.
+ * @param {Placement} placement Where the bubble rests.
+ */
+export function savePlacement(storage, { side, fromBottom, gap, share }) {
+  try {
+    storage?.setItem(POSITION_KEY, JSON.stringify({ side, fromBottom, gap, share }));
+  } catch {
+    // Storage blocked: the position lasts for this page view only.
+  }
+}
+
+/**
+ * Reports whether a link points at the page it is shown on: same origin, and
+ * the link is the site root or the page sits at or under the link's path.
+ * @param {string} linkUrl Link target.
+ * @param {string} pageUrl Address of the current page.
+ * @returns {boolean} True for a link to the current site.
+ */
+export function isCurrentSite(linkUrl, pageUrl) {
+  try {
+    const link = new URL(linkUrl);
+    const page = new URL(pageUrl);
+    if (!/^https?:$/.test(link.protocol) || link.origin !== page.origin) return false;
+    // '/cv/' and '/cv' name the same site: hosts redirect one to the other.
+    const path = link.pathname.replace(/(.)\/$/, '$1');
+    return path === '/' || page.pathname === path || page.pathname.startsWith(`${path}/`);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Drops the links to the current site, keeping all of them when every link matches.
+ * @template {{ url: string }} T
+ * @param {T[]} links Validated links.
+ * @param {string} pageUrl Address of the current page.
+ * @returns {T[]} The links to show.
+ */
+export function visibleLinks(links, pageUrl) {
+  const others = links.filter((link) => !isCurrentSite(link.url, pageUrl));
+  return others.length ? others : links;
 }
 
 /**

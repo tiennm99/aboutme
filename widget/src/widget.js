@@ -3,7 +3,7 @@
  * page's CSS and the widget's CSS never affect each other.
  */
 
-import { describeDuration, pickTheme } from './core.js';
+import { STRINGS, describeDuration, fill, pickTheme } from './core.js';
 
 const SIZE = 52;
 const MARGIN = 16;
@@ -195,15 +195,19 @@ function pageTheme(media) {
  * Mounts the widget on the page.
  * @param {object} options Widget options.
  * @param {import('./core.js').Profile} options.profile Validated profile.
- * @param {'left' | 'right'} options.position Starting side of the screen.
+ * @param {import('./core.js').Placement} options.placement Where the bubble starts.
+ * @param {import('./core.js').Lang} options.lang UI language.
  * @param {'auto' | 'light' | 'dark'} options.theme Colour theme; `auto` follows the page.
  * @param {import('./core.js').Layout} options.layout How links are shown: rows, captioned tiles or icon tiles.
  * @param {string} options.hide Hide period as written in the script tag.
  * @param {(event: string, target?: string) => void} options.track Sends an anonymous count.
  * @param {() => void} options.onDismiss Called once when the visitor dismisses the widget.
+ * @param {(placement: import('./core.js').Placement) => void} options.onMove Called with the resting place after a drag.
  * @returns {HTMLElement} The shadow host, to allow removal.
  */
-export function mount({ profile, position, theme, layout, hide, track, onDismiss }) {
+export function mount({ profile, placement, lang, theme, layout, hide, track, onDismiss, onMove }) {
+  const strings = STRINGS[lang];
+  const about = fill(strings.about, 'name', profile.name);
   const host = document.createElement('aboutme-widget');
   const shadow = host.attachShadow({ mode: 'open' });
   const root = el('div', 'root');
@@ -214,10 +218,10 @@ export function mount({ profile, position, theme, layout, hide, track, onDismiss
 
   const bubble = el('button', 'bubble');
   bubble.type = 'button';
-  bubble.setAttribute('aria-label', `About ${profile.name}`);
+  bubble.setAttribute('aria-label', about);
   bubble.setAttribute('aria-expanded', 'false');
   bubble.setAttribute('aria-controls', 'aboutme-panel');
-  bubble.title = 'Drag to the bottom to hide';
+  bubble.title = strings.drag;
   if (profile.avatar) {
     const img = el('img');
     img.alt = '';
@@ -231,7 +235,7 @@ export function mount({ profile, position, theme, layout, hide, track, onDismiss
   const panel = el('div', 'panel');
   panel.id = 'aboutme-panel';
   panel.setAttribute('role', 'dialog');
-  panel.setAttribute('aria-label', `About ${profile.name}`);
+  panel.setAttribute('aria-label', about);
   panel.hidden = true;
 
   const head = el('div', 'head');
@@ -246,7 +250,7 @@ export function mount({ profile, position, theme, layout, hide, track, onDismiss
   if (profile.tagline) who.append(el('div', 'tagline', profile.tagline));
   const close = el('button', 'icon-btn');
   close.type = 'button';
-  close.setAttribute('aria-label', 'Close');
+  close.setAttribute('aria-label', strings.close);
   close.append(icon('close'));
   head.append(who, close);
 
@@ -264,7 +268,7 @@ export function mount({ profile, position, theme, layout, hide, track, onDismiss
     list.append(item);
   }
 
-  const hideButton = el('button', 'hide', `Hide for ${describeDuration(hide)}`);
+  const hideButton = el('button', 'hide', fill(strings.hide, 'period', describeDuration(hide, lang)));
   hideButton.type = 'button';
   panel.append(head, list, hideButton);
 
@@ -298,13 +302,10 @@ export function mount({ profile, position, theme, layout, hide, track, onDismiss
 
   let x = 0;
   let y = 0;
-  let side = position;
   // The bubble rests this far from the nearer of the top and bottom edges, or
   // at this share of the height it can move in when the screen gets shorter,
   // so a bubble in the lower half stays there after a rotation.
-  let fromBottom = true;
-  let gap = MARGIN * 2;
-  let share = 1;
+  let { side, fromBottom, gap, share } = placement;
   let last = viewport();
 
   /** Moves the bubble to the current coordinates. */
@@ -329,8 +330,9 @@ export function mount({ profile, position, theme, layout, hide, track, onDismiss
     fromBottom = y + SIZE / 2 > h / 2;
     const top = clamp(y, MARGIN, h - SIZE - MARGIN);
     gap = fromBottom ? h - SIZE - top : top;
-    share = h > SIZE ? gap / (h - SIZE) : 1;
+    share = h > SIZE ? Math.min(gap / (h - SIZE), 1) : 1;
     snap();
+    onMove({ side, fromBottom, gap, share });
   }
 
   /**

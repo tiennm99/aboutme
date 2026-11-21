@@ -6,9 +6,23 @@
 | --- | --- | --- |
 | `data-profile` | required | URL of the profile JSON |
 | `data-hide` | `7d` | How long the bubble stays hidden after a dismissal: a number and `m`, `h`, `d` or `w` (`30m`, `12h`, `1d`, `2w`) |
-| `data-position` | `right` | Starting side: `left` or `right` |
+| `data-position` | `bottom-right` | Starting corner: `top-left`, `top-right`, `bottom-left` or `bottom-right`; `left` and `right` mean the bottom corners, and anything else falls back to `bottom-right` |
+| `data-offset` | `32` | Starting distance in px from the top or bottom edge (`24` or `24px`); clamped to at least 16 and at most what keeps the bubble on screen |
+| `data-lang` | page language | UI language: `en` or `vi`. Without it the widget uses Vietnamese when `<html lang>` is `vi` or `vi-*`, and English otherwise |
 | `data-theme` | `auto` | Colours: `auto` matches the page (its background, a `dark`/`light` class or `data-theme`-style attribute on `<html>` or `<body>`, its text colour, then the system setting) and follows it when it changes; `light` or `dark` fixes them |
 | `data-layout` | `list` | How links show: `list` is one row each with icon and label; `grid` is tiles, the icon above an 11 px caption, up to 4 a row; `icons` is the same tiles without the caption, which stays the link's accessible name and tooltip |
+
+When a visitor drags the bubble, its side and distance from the nearer edge are
+remembered in their browser (`localStorage` key `aboutme:pos`) and win over
+`data-position` and `data-offset` on later visits. It is a convenience for that
+visitor only and is never sent anywhere. Browser storage is per origin, so
+project sites sharing one host (such as `user.github.io/a` and `/b`) share the
+remembered position, as they share the hide period.
+
+A link whose URL points at the page the widget is on is hidden: same origin, and
+either the link is the site root or the page sits at or under the link's path
+(`/blog` matches `/blog` and `/blog/post`, not `/blogger`). If every link
+matches, all of them show.
 
 Auto mode reads only `<html>` and `<body>`. A site that paints its background
 and text on a wrapper element, or switches theme by swapping a stylesheet,
@@ -49,7 +63,9 @@ Worker's tests check `profile.json` against it.
 - Unknown fields are ignored, so adding an optional field needs no new version.
   A breaking change raises `schemaVersion` together with a new widget major
   (`@2`), and the Worker serves both until every site has moved.
-- Leave out `events` to send no counts.
+- Leave out `events` to send no counts. Visitors whose browser sends
+  [Global Privacy Control](https://globalprivacycontrol.org/)
+  (`navigator.globalPrivacyControl`) send none either.
 
 The Worker serves `profile.json` with `Cache-Control: max-age=3600,
 stale-while-revalidate=86400`. A visitor's browser keeps a copy for an hour and may
@@ -70,8 +86,9 @@ to the Workers Analytics Engine dataset `aboutme_events`:
 | `blob3` | Link id for clicks, empty otherwise |
 
 No cookie, IP, visitor id or user agent is stored, and Workers logs are off. The
-only thing kept in the visitor's browser is the dismissal time, a choice the
-visitor made, which is never sent.
+only things kept in the visitor's browser are the dismissal time and the dragged
+position, choices the visitor made, which are never sent. No count is sent when
+the browser signals Global Privacy Control.
 
 Query the counts with the
 [Analytics Engine SQL API](https://developers.cloudflare.com/analytics/analytics-engine/sql-api/):
