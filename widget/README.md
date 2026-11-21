@@ -17,4 +17,4 @@ Or put the profile JSON inside the script tag instead of `data-profile`. The
 profile format is in [`profile.schema.json`](profile.schema.json). Setups (GitHub Pages, or a
 Cloudflare Worker with anonymous counts) and options: [github.com/tiennm99/aboutme](https://github.com/tiennm99/aboutme).
 
-MIT licensed.
+Licensed under the Apache License 2.0.
